@@ -1,0 +1,48 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Xcode
+ios/OpenClawVoice/build/
+ios/OpenClawVoice/*.xcodeproj/xcuserdata/
+ios/OpenClawVoice/*.xcworkspace/xcuserdata/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xccheckout
+*.moved-aside
+DerivedData/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.build/
+Packages/
+Package.resolved
+
+# Node.js
+node_modules/
+npm-debug.log*
+.npm-cache/
+
+# Relay server
+server/openclaw-relay-server/certs/
+server/openclaw-relay-server/.env
+
+# Environment and secrets
+.env
+.env.local
+*.pem
+*.key
+*.cert
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code
+.claude/
