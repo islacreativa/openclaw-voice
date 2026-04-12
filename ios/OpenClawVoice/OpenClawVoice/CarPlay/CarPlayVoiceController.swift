@@ -36,7 +36,18 @@ final class CarPlayVoiceController {
         do {
             // Configure audio for CarPlay
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetoothHFP, .allowBluetoothA2DP, .defaultToSpeaker])
+            // Use runtime-compatible bluetooth option across iOS SDK versions.
+            var options: AVAudioSession.CategoryOptions = [.allowBluetoothA2DP, .defaultToSpeaker]
+            #if swift(>=6.0)
+            if #available(iOS 18.2, *) {
+                options.insert(.allowBluetoothHFP)
+            } else {
+                options.insert(.allowBluetooth)
+            }
+            #else
+            options.insert(.allowBluetooth)
+            #endif
+            try session.setCategory(.playAndRecord, mode: .voiceChat, options: options)
             try session.setActive(true)
 
             // Start listening
