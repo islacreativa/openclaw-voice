@@ -7,13 +7,15 @@ import { logger } from '../utils/logger.js';
 import { generateCerts } from '../utils/tls.js';
 
 export class WebSocketServer {
-    constructor({ port, certsPath, openclawBridge, sessionManager, authToken }) {
+    constructor({ port, certsPath, openclawBridge, sessionManager, authToken, config }) {
         this.port = port;
         this.certsPath = certsPath;
         this.bridge = openclawBridge;
         this.sessionManager = sessionManager;
+        this.config = config;
         this.auth = new Auth(authToken);
         this.messageHandler = new MessageHandler(openclawBridge, sessionManager);
+        this.messageHandler.setConfig(config);
         this.clients = new Map();
     }
 
@@ -76,13 +78,17 @@ export class WebSocketServer {
                     clientState.authenticated = true;
                     clientState.session = this.sessionManager.createSession(clientId, msg.client_info);
 
+                    const agent = this.config?.getCurrentAgent();
                     ws.send(JSON.stringify({
                         type: 'auth_ok',
                         session_id: clientState.session.id,
-                        server_info: { version: '0.1.0' }
+                        server_info: {
+                            version: '0.1.0',
+                            current_agent: agent ? { id: agent.id, name: agent.name } : null,
+                            available_agents: this.config?.listAgents() || []
+                        }
                     }));
 
-                    // Send OpenClaw status
                     const status = this.bridge.getStatus();
                     ws.send(JSON.stringify({
                         type: 'status',

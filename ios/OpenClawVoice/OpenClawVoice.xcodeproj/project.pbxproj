@@ -12,6 +12,7 @@
 		294C6C41F9DD4C602940464F /* ServerMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 552098DA8404289FE8ADF0A9 /* ServerMessage.swift */; };
 		344AFCB7DD1DB3982BB837EC /* ElevenLabsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD3BC85C322A4F3B77DCF00C /* ElevenLabsService.swift */; };
 		37016F491C2A4FF90110852F /* VoiceButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81A5D76C2D373C70070EB655 /* VoiceButton.swift */; };
+		4448AD17ACEB73C2B5E79BB8 /* QRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEBBFF95A33B14998D147869 /* QRScannerView.swift */; };
 		5C1D1A66B48E10F5958972F6 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0E75F892AD001EC2CDDC17E /* ChatViewModel.swift */; };
 		6AB5156C45ED5B2F350036F8 /* CarPlayVoiceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19852BD50B2AE65C170F61AB /* CarPlayVoiceController.swift */; };
 		7EBB8EAB2EA432CBD24F3103 /* SpeechRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9902040F1ADAF28DEAE64BEB /* SpeechRecognizer.swift */; };
@@ -20,6 +21,8 @@
 		A02A1EDFF389E224F92EEB8F /* OpenClawVoiceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FC393F1B6D97C6BA041BCB4 /* OpenClawVoiceApp.swift */; };
 		A4992C493D8E3F1513FFD7CB /* ConnectionStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7D064B69CCB2E57790152CD /* ConnectionStatus.swift */; };
 		A61B3FF5A6DB0CA74082CDD1 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB6B012F4EB737A0AB264956 /* AppState.swift */; };
+		AFEB4425471C0E7E67E07E9B /* AgentPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC90FAFEB947F9AA85D477B5 /* AgentPickerView.swift */; };
+		B2FCFF69FF1F56895DE923EF /* Agent.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10D64FAEACDEF4AF716E46E /* Agent.swift */; };
 		B8BE0801FA3CCC48EBAF70E0 /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C9577F6C854D26D98E3195 /* ChatMessage.swift */; };
 		B9F8F382E941A073BC3D4067 /* ConnectionSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5D19BEC4B21E73E4AD7CF12 /* ConnectionSetupView.swift */; };
 		BD66C323B467297EDB256694 /* CarPlaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 905BB97BFBE3A44758930025 /* CarPlaySceneDelegate.swift */; };
@@ -56,9 +59,12 @@
 		B6C8115747F8A29C007AE3FD /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		BD3BC85C322A4F3B77DCF00C /* ElevenLabsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElevenLabsService.swift; sourceTree = "<group>"; };
 		C59BA4C00E483252DB3C5C20 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		DC90FAFEB947F9AA85D477B5 /* AgentPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentPickerView.swift; sourceTree = "<group>"; };
+		E10D64FAEACDEF4AF716E46E /* Agent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Agent.swift; sourceTree = "<group>"; };
 		E7D064B69CCB2E57790152CD /* ConnectionStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionStatus.swift; sourceTree = "<group>"; };
 		F929567DAD7BC25F6CF8E440 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FB6B012F4EB737A0AB264956 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		FEBBFF95A33B14998D147869 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -104,6 +110,7 @@
 			isa = PBXGroup;
 			children = (
 				A5D19BEC4B21E73E4AD7CF12 /* ConnectionSetupView.swift */,
+				FEBBFF95A33B14998D147869 /* QRScannerView.swift */,
 			);
 			path = Connection;
 			sourceTree = "<group>";
@@ -111,6 +118,7 @@
 		80483E9B5E8D997F3128FD31 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				DC90FAFEB947F9AA85D477B5 /* AgentPickerView.swift */,
 				B6C8115747F8A29C007AE3FD /* SettingsView.swift */,
 			);
 			path = Settings;
@@ -148,6 +156,7 @@
 		8DF9A64E1C8F1510589C0D66 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				E10D64FAEACDEF4AF716E46E /* Agent.swift */,
 				17C9577F6C854D26D98E3195 /* ChatMessage.swift */,
 				E7D064B69CCB2E57790152CD /* ConnectionStatus.swift */,
 				552098DA8404289FE8ADF0A9 /* ServerMessage.swift */,
@@ -308,6 +317,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B2FCFF69FF1F56895DE923EF /* Agent.swift in Sources */,
+				AFEB4425471C0E7E67E07E9B /* AgentPickerView.swift in Sources */,
 				A61B3FF5A6DB0CA74082CDD1 /* AppState.swift in Sources */,
 				96D12CB32952C789326221A0 /* AudioPlayerService.swift in Sources */,
 				BD66C323B467297EDB256694 /* CarPlaySceneDelegate.swift in Sources */,
@@ -325,6 +336,7 @@
 				D74CD4EDC2A039C98B309D36 /* KeychainManager.swift in Sources */,
 				D6D2E1B59806D2C4F85F4411 /* MessageBubble.swift in Sources */,
 				A02A1EDFF389E224F92EEB8F /* OpenClawVoiceApp.swift in Sources */,
+				4448AD17ACEB73C2B5E79BB8 /* QRScannerView.swift in Sources */,
 				294C6C41F9DD4C602940464F /* ServerMessage.swift in Sources */,
 				E211848BA9C101EF657FD52A /* SettingsView.swift in Sources */,
 				7EBB8EAB2EA432CBD24F3103 /* SpeechRecognizer.swift in Sources */,

@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  relay-server:
+    name: Relay Server
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server/openclaw-relay-server
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: server/openclaw-relay-server/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax check all JS files
+        run: |
+          for f in $(find src -name "*.js"); do
+            node --check "$f" || exit 1
+          done
+
+      - name: Import modules
+        run: node -e "import('./src/config.js').then(m => { const c = new m.Config(); console.log('Config loaded, agents:', c.agents.map(a => a.name).join(', ')); })"
+
+      - name: Boot relay server and verify startup
+        run: |
+          node src/index.js > relay.log 2>&1 &
+          PID=$!
+          sleep 3
+          kill $PID 2>/dev/null || true
+          wait 2>/dev/null || true
+          echo "--- Startup log ---"
+          cat relay.log
+          grep -q "WebSocket server listening" relay.log
+          grep -q "Configured agents" relay.log
+
+  ios-app:
+    name: iOS App
+    runs-on: macos-14
+    defaults:
+      run:
+        working-directory: ios/OpenClawVoice
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app || sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build for iOS device
+        run: |
+          xcodebuild \
+            -project OpenClawVoice.xcodeproj \
+            -scheme OpenClawVoice \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            build

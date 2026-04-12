@@ -24,11 +24,14 @@ export class MessageHandler {
                 return this.handleCancel(ws, msg);
             case 'ping':
                 return this.handlePing(ws);
+            case 'list_agents':
+                return this.handleListAgents(ws, msg);
+            case 'switch_agent':
+                return this.handleSwitchAgent(ws, msg);
             case 'config_get':
             case 'config_set':
             case 'config_action':
             case 'logs_subscribe':
-                // Forward to config handler if available
                 if (this.configHandler) {
                     return this.configHandler.handleConfigMessage(ws, msg);
                 }
@@ -36,6 +39,10 @@ export class MessageHandler {
             default:
                 return this.sendError(ws, 'UNKNOWN_TYPE', `Unknown message type: ${msg.type}`);
         }
+    }
+
+    setConfig(config) {
+        this.config = config;
     }
 
     setConfigHandler(handler) {
@@ -133,6 +140,56 @@ export class MessageHandler {
             type: 'status',
             openclaw_status: 'ready'
         }));
+    }
+
+    handleListAgents(ws, msg) {
+        if (!this.config) {
+            return this.sendError(ws, 'NO_CONFIG', 'Config not available');
+        }
+        const agents = this.config.listAgents();
+        ws.send(JSON.stringify({
+            type: 'agents_list',
+            request_id: msg.id,
+            payload: {
+                agents,
+                current_agent_id: this.config.currentAgentId
+            }
+        }));
+    }
+
+    async handleSwitchAgent(ws, msg) {
+        if (!this.config) {
+            return this.sendError(ws, 'NO_CONFIG', 'Config not available');
+        }
+        const agentId = msg.payload?.agent_id;
+        if (!agentId) {
+            return this.sendError(ws, 'INVALID_REQUEST', 'Missing payload.agent_id');
+        }
+
+        try {
+            const agent = await this.bridge.switchAgent(agentId);
+            ws.send(JSON.stringify({
+                type: 'agent_switched',
+                request_id: msg.id,
+                payload: {
+                    success: true,
+                    agent: {
+                        id: agent.id,
+                        name: agent.name,
+                        description: agent.description
+                    }
+                }
+            }));
+        } catch (err) {
+            ws.send(JSON.stringify({
+                type: 'agent_switched',
+                request_id: msg.id,
+                payload: {
+                    success: false,
+                    error: err.message
+                }
+            }));
+        }
     }
 
     handlePing(ws) {

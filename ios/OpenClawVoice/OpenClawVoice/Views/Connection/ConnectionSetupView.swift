@@ -11,6 +11,7 @@ struct ConnectionSetupView: View {
     @State private var elevenLabsKey: String = ""
     @State private var isConnecting = false
     @State private var showManualEntry = true
+    @State private var showQRScanner = false
 
     var body: some View {
         NavigationStack {
@@ -28,6 +29,27 @@ struct ConnectionSetupView: View {
                             .foregroundStyle(.secondary)
                     }
                     .padding(.top, 40)
+
+                    // Scan QR button
+                    Button {
+                        showQRScanner = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "qrcode.viewfinder")
+                            Text("Scan QR Code")
+                                .fontWeight(.medium)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue.opacity(0.1))
+                        .foregroundStyle(.blue)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .padding(.horizontal)
+
+                    Text("or enter manually")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
 
                     // Manual entry
                     VStack(alignment: .leading, spacing: 16) {
@@ -107,6 +129,19 @@ struct ConnectionSetupView: View {
                 if case .error = newValue {
                     isConnecting = false
                 }
+            }
+            .sheet(isPresented: $showQRScanner) {
+                QRScannerView(
+                    onResult: { value in
+                        if let pairing = PairingData.parse(from: value) {
+                            serverURL = pairing.url
+                            authToken = pairing.token
+                        }
+                        showQRScanner = false
+                    },
+                    onCancel: { showQRScanner = false }
+                )
+                .ignoresSafeArea()
             }
         }
     }

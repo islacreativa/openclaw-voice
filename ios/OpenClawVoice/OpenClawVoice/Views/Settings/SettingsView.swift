@@ -10,6 +10,24 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
+                // Agent section
+                Section {
+                    NavigationLink {
+                        AgentPickerView(appState: appState, webSocket: webSocket)
+                    } label: {
+                        HStack {
+                            Image(systemName: "brain.head.profile")
+                                .foregroundStyle(.purple)
+                            Text("AI Agent")
+                            Spacer()
+                            Text(appState.currentAgent?.name ?? "—")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                } header: {
+                    Text("Active Agent")
+                }
+
                 // Connection section
                 Section("Connection") {
                     HStack {

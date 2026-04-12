@@ -57,7 +57,7 @@ struct ClientCancelMessage: Codable {
 // MARK: - Messages from Server to Client
 
 enum ServerMessage {
-    case authOk(sessionId: String)
+    case authOk(sessionId: String, currentAgent: Agent?, availableAgents: [Agent])
     case authError(code: String, message: String)
     case responseStart(commandId: String, responseId: String)
     case responseChunk(commandId: String, responseId: String, text: String, chunkIndex: Int)
@@ -65,6 +65,8 @@ enum ServerMessage {
     case status(openclawStatus: String)
     case error(code: String, message: String, commandId: String?)
     case pong(timestamp: String)
+    case agentsList(agents: [Agent], currentAgentId: String?)
+    case agentSwitched(success: Bool, agent: Agent?, error: String?)
     case unknown(type: String)
 
     static func parse(from data: Data) -> ServerMessage? {
@@ -76,7 +78,17 @@ enum ServerMessage {
         switch type {
         case "auth_ok":
             let sessionId = json["session_id"] as? String ?? ""
-            return .authOk(sessionId: sessionId)
+            let serverInfo = json["server_info"] as? [String: Any]
+            var currentAgent: Agent?
+            var availableAgents: [Agent] = []
+
+            if let agentDict = serverInfo?["current_agent"] as? [String: Any] {
+                currentAgent = parseAgent(from: agentDict)
+            }
+            if let agentsArr = serverInfo?["available_agents"] as? [[String: Any]] {
+                availableAgents = agentsArr.compactMap { parseAgent(from: $0) }
+            }
+            return .authOk(sessionId: sessionId, currentAgent: currentAgent, availableAgents: availableAgents)
 
         case "auth_error":
             let code = json["code"] as? String ?? "UNKNOWN"
@@ -119,8 +131,37 @@ enum ServerMessage {
             let timestamp = json["timestamp"] as? String ?? ""
             return .pong(timestamp: timestamp)
 
+        case "agents_list":
+            let payload = json["payload"] as? [String: Any]
+            let agentsArr = payload?["agents"] as? [[String: Any]] ?? []
+            let currentId = payload?["current_agent_id"] as? String
+            let agents = agentsArr.compactMap { parseAgent(from: $0) }
+            return .agentsList(agents: agents, currentAgentId: currentId)
+
+        case "agent_switched":
+            let payload = json["payload"] as? [String: Any]
+            let success = payload?["success"] as? Bool ?? false
+            let error = payload?["error"] as? String
+            var agent: Agent?
+            if let agentDict = payload?["agent"] as? [String: Any] {
+                agent = parseAgent(from: agentDict)
+            }
+            return .agentSwitched(success: success, agent: agent, error: error)
+
         default:
             return .unknown(type: type)
         }
+    }
+
+    private static func parseAgent(from dict: [String: Any]) -> Agent? {
+        guard let id = dict["id"] as? String,
+              let name = dict["name"] as? String else { return nil }
+        return Agent(
+            id: id,
+            name: name,
+            description: dict["description"] as? String,
+            command: dict["command"] as? String,
+            isCurrent: dict["isCurrent"] as? Bool ?? false
+        )
     }
 }

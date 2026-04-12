@@ -21,6 +21,10 @@ final class AppState {
     // CarPlay
     var isCarPlayConnected: Bool = false
 
+    // Agents (multi-agent support: OpenClaw, NemoClaw, etc.)
+    var availableAgents: [Agent] = []
+    var currentAgent: Agent?
+
     // Config
     var elevenLabsAPIKey: String = ""
     var selectedVoiceId: String = "pNInz6obpgDQGcFmaJgB" // Adam default

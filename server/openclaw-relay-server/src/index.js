@@ -1,16 +1,20 @@
 import { Config } from './config.js';
 import { WebSocketServer } from './server/websocket-server.js';
-import { OpenClawBridge } from './openclaw/bridge.js';
+import { AgentBridge } from './openclaw/bridge.js';
 import { SessionManager } from './session/session-manager.js';
 import { showSetupQR } from './utils/qr-setup.js';
 import { logger } from './utils/logger.js';
 
 async function main() {
-    logger.info('Starting OpenClaw Relay Server...');
+    logger.info('Starting OpenClaw Voice Relay Server...');
 
     const config = new Config();
     const sessionManager = new SessionManager();
-    const openclawBridge = new OpenClawBridge(config);
+    const openclawBridge = new AgentBridge(config);
+
+    // Log configured agents
+    logger.info(`Configured agents: ${config.agents.map(a => a.name).join(', ')}`);
+    logger.info(`Current agent: ${config.getCurrentAgent()?.name}`);
 
     // Start OpenClaw bridge
     await openclawBridge.start();
@@ -29,7 +33,8 @@ async function main() {
         certsPath: config.certsPath,
         openclawBridge,
         sessionManager,
-        authToken: config.authToken
+        authToken: config.authToken,
+        config
     });
 
     await server.start();

@@ -98,6 +98,26 @@ final class WebSocketManager {
         webSocket?.send(.string(json)) { _ in }
     }
 
+    func sendListAgents() {
+        let msg: [String: Any] = ["type": "list_agents", "id": UUID().uuidString]
+        sendJSON(msg)
+    }
+
+    func sendSwitchAgent(agentId: String) {
+        let msg: [String: Any] = [
+            "type": "switch_agent",
+            "id": UUID().uuidString,
+            "payload": ["agent_id": agentId]
+        ]
+        sendJSON(msg)
+    }
+
+    private func sendJSON(_ dict: [String: Any]) {
+        guard let data = try? JSONSerialization.data(withJSONObject: dict),
+              let json = String(data: data, encoding: .utf8) else { return }
+        webSocket?.send(.string(json)) { _ in }
+    }
+
     func sendPing() {
         let ping = ClientPingMessage(type: "ping", timestamp: ISO8601DateFormatter().string(from: Date()))
         guard let data = try? JSONEncoder().encode(ping),
@@ -140,20 +160,32 @@ final class WebSocketManager {
         }
     }
 
+    var onAgentsUpdate: (([Agent], Agent?) -> Void)?
+
     private func handleServerMessage(_ msg: ServerMessage) {
         switch msg {
-        case .authOk(let sessionId):
+        case .authOk(let sessionId, let currentAgent, let availableAgents):
             connectionStatus = .connected
             reconnectAttempt = 0
             startHeartbeat()
             print("Authenticated, session: \(sessionId)")
+            onAgentsUpdate?(availableAgents, currentAgent)
 
         case .authError(let code, let message):
             connectionStatus = .error("\(code): \(message)")
             disconnect()
 
+        case .agentsList(let agents, let currentId):
+            let current = agents.first { $0.id == currentId }
+            onAgentsUpdate?(agents, current)
+
+        case .agentSwitched(let success, let agent, _):
+            if success, let agent {
+                onAgentsUpdate?([], agent)
+            }
+
         case .pong:
-            break // Heartbeat OK
+            break
 
         default:
             break

@@ -1,8 +1,8 @@
 # OpenClaw Voice
 
-**Voice interface for [OpenClaw](https://github.com/openclaw) from your iPhone and Apple CarPlay.**
+**Voice interface for [OpenClaw](https://github.com/openclaw), [NemoClaw](https://github.com/nemoclaw), and other AI agents — from your iPhone and Apple CarPlay.**
 
-Talk to OpenClaw running on your Mac using natural voice commands from your iPhone — at your desk, on the couch, or in the car via CarPlay. OpenClaw Voice handles the full pipeline: speech recognition, real-time communication, and high-quality voice responses.
+Talk to any stdin/stdout AI assistant running on your Mac using natural voice commands from your iPhone — at your desk, on the couch, or in the car via CarPlay. Switch between multiple agents on the fly. OpenClaw Voice handles the full pipeline: speech recognition, real-time communication, and high-quality voice responses.
 
 ```
  iPhone / CarPlay                          Mac (laptop)
@@ -28,13 +28,15 @@ Talk to OpenClaw running on your Mac using natural voice commands from your iPho
 
 ## Features
 
+- **Multi-agent support** — run OpenClaw, NemoClaw, or any other stdin/stdout AI agent. Switch between agents from the app.
 - **Voice-first interaction** — push-to-talk with on-device speech recognition
-- **Streaming responses** — hear OpenClaw's answer as it's being generated, not after
+- **Streaming responses** — hear the agent's answer as it's being generated, not after
 - **Apple CarPlay** — minimalist, voice-driven interface for safe driving
 - **ElevenLabs TTS** — multilingual, high-quality voice synthesis with configurable voices
 - **Secure by default** — TLS encryption, token auth, iOS Keychain storage
 - **Remote access** — works outside your local network via Tailscale VPN
-- **Remote config** — manage OpenClaw settings, MCPs, and logs from your phone
+- **Remote config** — manage agent settings, MCPs, and logs from your phone
+- **QR code pairing** — scan to connect the app to your Mac
 - **Auto-reconnection** — exponential backoff, transparent session recovery
 
 ## Architecture
@@ -71,9 +73,10 @@ Full architecture details: [`docs/ARCHITECTURE.md`](openclaw-voice-app/docs/ARCH
 
 ### Mac (server)
 - macOS 13+
-- OpenClaw installed and working
+- At least one AI agent installed (OpenClaw, NemoClaw, or any CLI-based assistant)
 - Node.js 20+ (`brew install node`)
 - Xcode 15+ (for iOS development)
+- `xcodegen` to generate the Xcode project (`brew install xcodegen`)
 
 ### iPhone
 - iOS 17.0+
@@ -108,14 +111,37 @@ wscat -c wss://localhost:8765/ws --no-check
 
 ### 2. Build the iOS App
 
-1. Open `ios/OpenClawVoice/OpenClawVoice.xcodeproj` in Xcode
-2. Select your Apple Developer Team in Signing & Capabilities
-3. Connect your iPhone and press `Cmd + R`
-4. In the app, scan the QR code displayed by the relay server
+```bash
+cd ios/OpenClawVoice
+xcodegen generate
+open OpenClawVoice.xcodeproj
+```
 
-### 3. Talk to OpenClaw
+In Xcode:
+1. Select your Apple Developer Team in Signing & Capabilities
+2. Connect your iPhone and press `Cmd + R`
+3. In the app, scan the QR code from the relay server — or enter the URL and token manually
 
-Press the microphone button, speak your command, and release. OpenClaw's response will play back as natural speech.
+### 3. Talk to Your Agent
+
+Press and hold the microphone button, speak your command, and release. The agent's response will play back as natural speech. To switch between agents, go to **Settings → AI Agent**.
+
+## Configuring Agents
+
+By default, the relay server is configured for two agents: **OpenClaw** and **NemoClaw**. You can edit `~/.openclaw-relay/config.json` to add more:
+
+```json
+{
+  "agents": [
+    { "id": "openclaw",  "name": "OpenClaw",  "command": "openclaw",  "description": "..." },
+    { "id": "nemoclaw",  "name": "NemoClaw",  "command": "nemoclaw",  "description": "..." },
+    { "id": "my-agent",  "name": "My Agent",  "command": "/path/to/cli", "args": ["--chat"] }
+  ],
+  "currentAgentId": "openclaw"
+}
+```
+
+Any CLI assistant that reads from stdin and writes to stdout will work.
 
 ## Documentation
 

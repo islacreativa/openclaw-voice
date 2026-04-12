@@ -46,6 +46,26 @@ struct ContentView: View {
             elevenLabs: el,
             audioPlayer: audioPlayer
         )
+
+        // Wire up agent updates from the server
+        webSocket.onAgentsUpdate = { [weak appState] agents, currentAgent in
+            Task { @MainActor in
+                guard let appState else { return }
+                if !agents.isEmpty {
+                    appState.availableAgents = agents
+                }
+                if let currentAgent {
+                    appState.currentAgent = currentAgent
+                    // Update the matching entry in availableAgents
+                    if let idx = appState.availableAgents.firstIndex(where: { $0.id == currentAgent.id }) {
+                        appState.availableAgents[idx].isCurrent = true
+                    }
+                    for i in appState.availableAgents.indices where appState.availableAgents[i].id != currentAgent.id {
+                        appState.availableAgents[i].isCurrent = false
+                    }
+                }
+            }
+        }
     }
 }
 
