@@ -49,21 +49,26 @@ jobs:
 
   ios-app:
     name: iOS App
-    runs-on: macos-14
+    runs-on: macos-15
     defaults:
       run:
         working-directory: ios/OpenClawVoice
     steps:
       - uses: actions/checkout@v4
 
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_15.4.app || sudo xcode-select -s /Applications/Xcode.app
+      - name: Select latest Xcode
+        run: |
+          ls /Applications | grep -i xcode
+          sudo xcode-select -s /Applications/Xcode_16.app || sudo xcode-select -s /Applications/Xcode.app
+          xcodebuild -version
 
       - name: Install xcodegen
         run: brew install xcodegen
 
-      - name: Generate Xcode project
-        run: xcodegen generate
+      - name: Remove committed .xcodeproj and regenerate
+        run: |
+          rm -rf OpenClawVoice.xcodeproj
+          xcodegen generate
 
       - name: Build for iOS device
         run: |
