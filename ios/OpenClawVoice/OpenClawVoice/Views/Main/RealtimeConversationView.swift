@@ -52,30 +52,91 @@ struct RealtimeConversationView: View {
         .padding(.vertical)
         .navigationTitle("Real-time Voice")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    tempAgentId = appState.elevenLabsAgentId
+                    showSetup = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "person.crop.circle")
+                        if !appState.elevenLabsAgentId.isEmpty {
+                            Text(String(appState.elevenLabsAgentId.prefix(8)) + "…")
+                                .font(.caption.monospaced())
+                        } else {
+                            Text("Agent")
+                                .font(.caption)
+                        }
+                    }
+                }
+            }
+        }
         .sheet(isPresented: $showSetup) {
             NavigationStack {
                 Form {
-                    Section("ElevenLabs Agent") {
-                        TextField("Agent ID", text: $tempAgentId)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
+                    Section {
+                        HStack {
+                            TextField("Agent ID", text: $tempAgentId)
+                                .autocorrectionDisabled()
+                                .textInputAutocapitalization(.never)
+                                .font(.body.monospaced())
 
-                        Text("Find your Agent ID at elevenlabs.io/app/conversational-ai")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            if tempAgentId.isEmpty {
+                                Button {
+                                    if let clipboard = UIPasteboard.general.string {
+                                        tempAgentId = clipboard.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    }
+                                } label: {
+                                    Image(systemName: "doc.on.clipboard")
+                                        .foregroundStyle(.blue)
+                                }
+                            } else {
+                                Button {
+                                    tempAgentId = ""
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    } header: {
+                        Text("ElevenLabs Agent ID")
+                    } footer: {
+                        Text("Find your Agent ID at elevenlabs.io/app/conversational-ai → select an agent → copy ID.")
+                    }
+
+                    if !appState.elevenLabsAgentId.isEmpty && appState.elevenLabsAgentId != tempAgentId {
+                        Section {
+                            HStack {
+                                Text("Current")
+                                Spacer()
+                                Text(appState.elevenLabsAgentId)
+                                    .font(.caption.monospaced())
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                            }
+                        }
                     }
                 }
-                .navigationTitle("Setup")
+                .navigationTitle("Agent")
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") { showSetup = false }
                     }
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Save") {
-                            appState.elevenLabsAgentId = tempAgentId.trimmingCharacters(in: .whitespacesAndNewlines)
-                            try? KeychainManager.shared.save(appState.elevenLabsAgentId, forKey: Constants.keychainElevenLabsAgentIdKey)
+                            let newId = tempAgentId.trimmingCharacters(in: .whitespacesAndNewlines)
+                            appState.elevenLabsAgentId = newId
+                            try? KeychainManager.shared.save(newId, forKey: Constants.keychainElevenLabsAgentIdKey)
+                            // Stop any running conversation so next Start uses the new agent
+                            if service.state != .idle {
+                                service.stop()
+                            }
                             showSetup = false
                         }
+                        .disabled(tempAgentId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
                 }
             }
