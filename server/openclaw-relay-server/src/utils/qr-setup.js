@@ -14,11 +14,11 @@ export function showSetupQR(config) {
         console.log(code);
     });
 
-    console.log('\nOr enter manually:');
+    console.log('\nOr enter manually:\n');
     console.log(`  URL:   ${qrData.url}`);
-    console.log(`  Token: ${qrData.token.substring(0, 8)}...${qrData.token.substring(qrData.token.length - 4)}`);
     if (qrData.tailscale_url) {
-        console.log(`  Tailscale: ${qrData.tailscale_url}`);
+        console.log(`  Tailscale URL: ${qrData.tailscale_url}`);
     }
+    console.log(`  Token: ${qrData.token}`);
     console.log('\n' + '='.repeat(60) + '\n');
 }
