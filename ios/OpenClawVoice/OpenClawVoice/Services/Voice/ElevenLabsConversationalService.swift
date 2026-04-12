@@ -95,10 +95,29 @@ final class ElevenLabsConversationalService: NSObject {
 
     private func startAudioCapture() throws {
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetoothA2DP, .defaultToSpeaker])
-        try session.setActive(true)
+        // Voice chat mode enables hardware echo cancellation (AEC) which is
+        // critical for real-time conversations. We deliberately do NOT use
+        // .defaultToSpeaker — routing to the loudspeaker breaks AEC and causes
+        // the mic to pick up the agent's own voice, triggering infinite
+        // interruption loops. Users can plug in headphones or AirPods for
+        // best results; the receiver (earpiece) is used otherwise.
+        try session.setCategory(
+            .playAndRecord,
+            mode: .voiceChat,
+            options: [.allowBluetoothA2DP, .allowAirPlay]
+        )
+        try session.setActive(true, options: .notifyOthersOnDeactivation)
 
         let inputNode = audioEngine.inputNode
+
+        // Explicitly enable voice processing on the input node for software AEC
+        // in addition to the hardware AEC from voiceChat mode.
+        do {
+            try inputNode.setVoiceProcessingEnabled(true)
+        } catch {
+            print("[ElevenLabs] Could not enable voice processing: \(error)")
+        }
+
         let inputFormat = inputNode.outputFormat(forBus: 0)
 
         // Target format: PCM 16kHz mono (ElevenLabs expects 16-bit PCM @ 16kHz)
@@ -136,6 +155,14 @@ final class ElevenLabsConversationalService: NSObject {
     }
 
     private func handleInputBuffer(_ buffer: AVAudioPCMBuffer, converter: AVAudioConverter, targetFormat: AVAudioFormat) {
+        // Gate the microphone while the agent is speaking. Even with AEC,
+        // aggressive feedback can happen on speakerphone / bad acoustics.
+        // The ElevenLabs VAD (server-side) will handle real interruptions
+        // via the "interruption" event when needed.
+        if case .agentSpeaking = state {
+            return
+        }
+
         let frameCapacity = AVAudioFrameCount(Double(buffer.frameLength) * targetFormat.sampleRate / buffer.format.sampleRate)
         guard let outputBuffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: frameCapacity) else { return }
 
@@ -219,6 +246,7 @@ final class ElevenLabsConversationalService: NSObject {
                let data = Data(base64Encoded: base64) {
                 playAudioChunk(data)
                 Task { @MainActor in self.state = .agentSpeaking }
+                scheduleReturnToListening()
             }
 
         case "user_transcript":
@@ -245,13 +273,33 @@ final class ElevenLabsConversationalService: NSObject {
             }
 
         case "interruption":
-            // Agent was interrupted; clear audio queue
+            // Agent was interrupted; clear audio queue and return to listening
             playerNode.stop()
             playerNode.play()
+            Task { @MainActor in self.state = .listening }
 
         default:
             break
         }
+    }
+
+    /// Timer used to transition back to .listening once the agent stops
+    /// sending audio chunks. ElevenLabs doesn't emit a clean "audio_end"
+    /// event, so we debounce on silence.
+    private var returnToListeningWorkItem: DispatchWorkItem?
+
+    private func scheduleReturnToListening() {
+        returnToListeningWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            // Only transition if we're still in agentSpeaking state.
+            if case .agentSpeaking = self.state {
+                self.state = .listening
+            }
+        }
+        returnToListeningWorkItem = work
+        // 700ms of silence on the audio stream → assume turn ended.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7, execute: work)
     }
 
     // MARK: - Audio playback
