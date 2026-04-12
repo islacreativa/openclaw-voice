@@ -1,0 +1,62 @@
+name: OpenClawVoice
+options:
+  bundleIdPrefix: com.dckstudios
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "15.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: 1
+
+targets:
+  OpenClawVoice:
+    type: application
+    platform: iOS
+    sources:
+      - path: OpenClawVoice
+        excludes:
+          - "**/.DS_Store"
+    resources:
+      - path: OpenClawVoice/Resources/Assets.xcassets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.dckstudios.openclaw-voice
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        SUPPORTS_MACCATALYST: false
+        CODE_SIGN_STYLE: Automatic
+    info:
+      path: OpenClawVoice/Info.plist
+      properties:
+        CFBundleDisplayName: OpenClaw Voice
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSMicrophoneUsageDescription: "OpenClaw Voice needs microphone access for voice recognition"
+        NSSpeechRecognitionUsageDescription: "OpenClaw Voice uses speech recognition to send voice commands"
+        NSCameraUsageDescription: "OpenClaw Voice uses the camera to scan QR codes for server pairing"
+        NSLocalNetworkUsageDescription: "OpenClaw Voice connects to your Mac on the local network"
+        NSBonjourServices:
+          - _openclaw._tcp
+        UIBackgroundModes:
+          - audio
+          - voip
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+          UISceneConfigurations:
+            UIWindowSceneSessionRoleApplication:
+              - UISceneConfigurationName: Default Configuration
+                UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).AppDelegate
+            CPTemplateApplicationSceneSessionRoleApplication:
+              - UISceneConfigurationName: CarPlay Configuration
+                UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).CarPlaySceneDelegate
+    entitlements:
+      path: OpenClawVoice/OpenClawVoice.entitlements
+      properties:
+        com.apple.developer.carplay-communication: true
