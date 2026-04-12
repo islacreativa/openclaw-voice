@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import UIKit
 
 struct ConnectionSetupView: View {
     let appState: AppState
@@ -55,26 +56,25 @@ struct ConnectionSetupView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         GroupBox("Server Connection") {
                             VStack(spacing: 12) {
-                                TextField("wss://192.168.1.X:8765/ws", text: $serverURL)
-                                    .textFieldStyle(.roundedBorder)
-                                    .keyboardType(.URL)
-                                    .autocorrectionDisabled()
-                                    .textInputAutocapitalization(.never)
-
-                                TextField("Auth Token", text: $authToken)
-                                    .textFieldStyle(.roundedBorder)
-                                    .autocorrectionDisabled()
-                                    .textInputAutocapitalization(.never)
+                                pasteableField(
+                                    placeholder: "wss://192.168.1.X:8765/ws",
+                                    text: $serverURL,
+                                    keyboard: .URL
+                                )
+                                pasteableField(
+                                    placeholder: "Auth Token",
+                                    text: $authToken
+                                )
                             }
                             .padding(.top, 8)
                         }
 
                         GroupBox("ElevenLabs (Voice)") {
                             VStack(alignment: .leading, spacing: 8) {
-                                TextField("API Key (optional)", text: $elevenLabsKey)
-                                    .textFieldStyle(.roundedBorder)
-                                    .autocorrectionDisabled()
-                                    .textInputAutocapitalization(.never)
+                                pasteableField(
+                                    placeholder: "API Key (optional)",
+                                    text: $elevenLabsKey
+                                )
 
                                 Text("Get your key at elevenlabs.io")
                                     .font(.caption)
@@ -142,6 +142,43 @@ struct ConnectionSetupView: View {
                     onCancel: { showQRScanner = false }
                 )
                 .ignoresSafeArea()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func pasteableField(placeholder: String, text: Binding<String>, keyboard: UIKeyboardType = .default) -> some View {
+        HStack(spacing: 8) {
+            TextField(placeholder, text: text)
+                .textFieldStyle(.roundedBorder)
+                .keyboardType(keyboard)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+
+            if text.wrappedValue.isEmpty {
+                Button {
+                    if let clipboard = UIPasteboard.general.string {
+                        text.wrappedValue = clipboard.trimmingCharacters(in: .whitespacesAndNewlines)
+                    }
+                } label: {
+                    Image(systemName: "doc.on.clipboard")
+                        .font(.body)
+                        .foregroundStyle(.blue)
+                        .frame(width: 32, height: 32)
+                        .background(Color.blue.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+                .accessibilityLabel("Paste")
+            } else {
+                Button {
+                    text.wrappedValue = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 32, height: 32)
+                }
+                .accessibilityLabel("Clear")
             }
         }
     }
