@@ -87,6 +87,41 @@ Key message types added for multi-agent support:
 - `list_agents` → `agents_list` — List all configured agents
 - `switch_agent` → `agent_switched` — Switch the active agent at runtime
 
+## Troubleshooting
+
+### `Error: listen EADDRINUSE: address already in use 0.0.0.0:8765`
+
+A previous relay instance is still running. Free the port:
+
+```bash
+lsof -ti :8765 | xargs kill -9
+```
+
+Then `npm start` again.
+
+### `OPENCLAW_NOT_RUNNING` / `Agent not ready`
+
+The relay launched but the agent command failed. Check:
+
+```bash
+# Is the command in your PATH?
+which openclaw
+which nemoclaw
+
+# Does it run manually?
+openclaw agent --session-id <existing-id> --message "hi" --json
+```
+
+Edit `~/.openclaw-relay/config.json` to point to the correct binary path.
+
+### iOS app shows "connection offline" (-1009)
+
+1. Confirm the iPhone is on the same WiFi as the Mac.
+2. In iOS Settings → OpenClaw Voice → enable **Local Network**.
+3. The relay uses a self-signed TLS cert; the app trusts it automatically,
+   but the `NSAppTransportSecurity` exceptions must be present (already
+   configured in this repo).
+
 ## Testing
 
 Manual test with `wscat`:

@@ -46,7 +46,7 @@
 		30FD177ECF7333719320141D /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		345C2EE8AB76162533C6519E /* LocalNetworkPermission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNetworkPermission.swift; sourceTree = "<group>"; };
 		348FC131A33A77390FE54992 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
-		42D8913099BFD800F18A3A70 /* OpenClawVoice.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = OpenClawVoice.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		42D8913099BFD800F18A3A70 /* OpenClawVoice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OpenClawVoice.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4886059CCFCC01942C078526 /* WebSocketManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketManager.swift; sourceTree = "<group>"; };
 		552098DA8404289FE8ADF0A9 /* ServerMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerMessage.swift; sourceTree = "<group>"; };
 		6F6644D80E05D0C546AF3895 /* ElevenLabsConversationalService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElevenLabsConversationalService.swift; sourceTree = "<group>"; };
@@ -407,6 +407,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 3H53Q8U99C;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = OpenClawVoice/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -491,6 +492,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 3H53Q8U99C;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = OpenClawVoice/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
