@@ -20,8 +20,6 @@ targets:
       - path: OpenClawVoice
         excludes:
           - "**/.DS_Store"
-    resources:
-      - path: OpenClawVoice/Resources/Assets.xcassets
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dckstudios.openclaw-voice

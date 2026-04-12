@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		016D246BD74F6384F3CD6F98 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F929567DAD7BC25F6CF8E440 /* Assets.xcassets */; };
 		2868BE49418787422D29DCC9 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30FD177ECF7333719320141D /* Constants.swift */; };
 		294C6C41F9DD4C602940464F /* ServerMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 552098DA8404289FE8ADF0A9 /* ServerMessage.swift */; };
 		344AFCB7DD1DB3982BB837EC /* ElevenLabsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD3BC85C322A4F3B77DCF00C /* ElevenLabsService.swift */; };
@@ -62,7 +61,6 @@
 		DC90FAFEB947F9AA85D477B5 /* AgentPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentPickerView.swift; sourceTree = "<group>"; };
 		E10D64FAEACDEF4AF716E46E /* Agent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Agent.swift; sourceTree = "<group>"; };
 		E7D064B69CCB2E57790152CD /* ConnectionStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionStatus.swift; sourceTree = "<group>"; };
-		F929567DAD7BC25F6CF8E440 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FB6B012F4EB737A0AB264956 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		FEBBFF95A33B14998D147869 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -199,7 +197,6 @@
 		D0010E8C35A278819F23E5A9 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				F929567DAD7BC25F6CF8E440 /* Assets.xcassets */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -255,7 +252,6 @@
 			buildConfigurationList = F1A3437367DEC73C1CC9C585 /* Build configuration list for PBXNativeTarget "OpenClawVoice" */;
 			buildPhases = (
 				69C0D3EAAD11859573EAC016 /* Sources */,
-				64BA385FBECF7D0ADC789946 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -300,17 +296,6 @@
 			);
 		};
 /* End PBXProject section */
-
-/* Begin PBXResourcesBuildPhase section */
-		64BA385FBECF7D0ADC789946 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				016D246BD74F6384F3CD6F98 /* Assets.xcassets in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		69C0D3EAAD11859573EAC016 /* Sources */ = {
