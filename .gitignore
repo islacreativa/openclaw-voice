@@ -5,8 +5,8 @@
 
 # Xcode
 ios/OpenClawVoice/build/
-ios/OpenClawVoice/*.xcodeproj/xcuserdata/
-ios/OpenClawVoice/*.xcworkspace/xcuserdata/
+**/xcuserdata/
+**/*.xcuserstate
 *.pbxuser
 *.mode1v3
 *.mode2v3
