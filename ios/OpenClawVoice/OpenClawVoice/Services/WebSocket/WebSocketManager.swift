@@ -6,6 +6,7 @@ import UIKit
 final class WebSocketManager {
     private var webSocket: URLSessionWebSocketTask?
     private var session: URLSession?
+    private var sessionDelegate: SelfSignedCertDelegate?
     private var serverURL: URL?
     private var authToken: String = ""
     private var heartbeatTask: Task<Void, Never>?
@@ -32,11 +33,16 @@ final class WebSocketManager {
     private func performConnect() {
         connectionStatus = .connecting
 
-        // Create session that trusts self-signed certs
+        // Create session that trusts self-signed certs. Retain the delegate
+        // strongly so its challenge methods remain available.
         let delegate = SelfSignedCertDelegate()
-        session = URLSession(configuration: .default, delegate: delegate, delegateQueue: nil)
+        self.sessionDelegate = delegate
+        let operationQueue = OperationQueue()
+        operationQueue.qualityOfService = .userInitiated
+        session = URLSession(configuration: .default, delegate: delegate, delegateQueue: operationQueue)
 
         guard let url = serverURL else { return }
+        print("[WS] Connecting to \(url)")
         webSocket = session?.webSocketTask(with: url)
         webSocket?.resume()
 
@@ -243,16 +249,56 @@ final class WebSocketManager {
 }
 
 // MARK: - Self-signed cert delegate
+//
+// Accepts any TLS cert from the relay server. The relay uses a self-signed
+// cert generated on first run; this delegate bypasses the default trust
+// evaluation to allow it.
+//
+// Handles BOTH session-level and task-level authentication challenges
+// because URLSessionWebSocketTask routes server-trust challenges via the
+// task delegate, not the session delegate, on some iOS versions.
 
-private class SelfSignedCertDelegate: NSObject, URLSessionDelegate {
+private class SelfSignedCertDelegate: NSObject, URLSessionDelegate, URLSessionTaskDelegate, URLSessionWebSocketDelegate {
     func urlSession(
         _ session: URLSession,
         didReceive challenge: URLAuthenticationChallenge,
         completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
     ) {
-        // Trust self-signed certificates for local relay server
+        print("[TLS] Session challenge: \(challenge.protectionSpace.authenticationMethod) host=\(challenge.protectionSpace.host)")
+        handleChallenge(challenge, completionHandler: completionHandler)
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        print("[TLS] Task challenge: \(challenge.protectionSpace.authenticationMethod) host=\(challenge.protectionSpace.host)")
+        handleChallenge(challenge, completionHandler: completionHandler)
+    }
+
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
+        print("[WS] Opened with protocol: \(`protocol` ?? "none")")
+    }
+
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
+        print("[WS] Closed: \(closeCode)")
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        if let error {
+            print("[WS] Task completed with error: \(error)")
+        }
+    }
+
+    private func handleChallenge(
+        _ challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
         if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
            let trust = challenge.protectionSpace.serverTrust {
+            print("[TLS] Accepting self-signed cert for host: \(challenge.protectionSpace.host)")
             completionHandler(.useCredential, URLCredential(trust: trust))
         } else {
             completionHandler(.performDefaultHandling, nil)
