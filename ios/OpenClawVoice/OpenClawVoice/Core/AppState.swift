@@ -32,6 +32,9 @@ final class AppState {
     var speechLocale: String = "es-ES"
     var listeningMode: ListeningMode = .pushToTalk
 
+    // Real-time conversational AI (ElevenLabs Agent)
+    var elevenLabsAgentId: String = ""
+
     enum ListeningMode: String, CaseIterable {
         case pushToTalk = "Push to Talk"
         case continuous = "Continuous"

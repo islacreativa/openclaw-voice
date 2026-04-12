@@ -3,6 +3,7 @@ import { WebSocketServer as WSServer } from 'ws';
 import { v4 as uuid } from 'uuid';
 import { Auth } from './auth.js';
 import { MessageHandler } from './message-handler.js';
+import { attachHttpApi } from './http-api.js';
 import { logger } from '../utils/logger.js';
 import { generateCerts } from '../utils/tls.js';
 
@@ -27,6 +28,15 @@ export class WebSocketServer {
         const { cert, key } = generateCerts(this.certsPath);
 
         const httpsServer = createServer({ cert, key });
+
+        // Attach OpenAI-compatible HTTP API for ElevenLabs Custom LLM.
+        // Attached before `ws` adds its upgrade handler so regular
+        // HTTP requests get routed to our endpoints.
+        attachHttpApi(httpsServer, {
+            bridge: this.bridge,
+            authToken: this.auth.expectedToken,
+            config: this.config
+        });
 
         this.wss = new WSServer({ server: httpsServer });
 

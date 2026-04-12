@@ -41,6 +41,10 @@ struct ContentView: View {
         if let apiKey = KeychainManager.shared.load(forKey: Constants.keychainElevenLabsKey) {
             appState.elevenLabsAPIKey = apiKey
         }
+
+        if let agentId = KeychainManager.shared.load(forKey: Constants.keychainElevenLabsAgentIdKey) {
+            appState.elevenLabsAgentId = agentId
+        }
     }
 
     private func setupServices() {
@@ -87,6 +91,13 @@ struct MainTabView: View {
                 .tabItem {
                     Label("Chat", systemImage: "bubble.left.and.bubble.right")
                 }
+
+            NavigationStack {
+                RealtimeConversationView(appState: appState)
+            }
+            .tabItem {
+                Label("Realtime", systemImage: "waveform.circle")
+            }
 
             SettingsView(appState: appState, webSocket: webSocket)
                 .tabItem {
