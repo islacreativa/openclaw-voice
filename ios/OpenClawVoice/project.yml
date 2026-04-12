@@ -26,9 +26,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dckstudios.openclaw-voice
         TARGETED_DEVICE_FAMILY: "1"
-        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SUPPORTS_MACCATALYST: false
         CODE_SIGN_STYLE: Automatic
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
     info:
       path: OpenClawVoice/Info.plist
       properties:
