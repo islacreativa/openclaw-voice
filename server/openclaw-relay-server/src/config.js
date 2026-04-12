@@ -46,6 +46,11 @@ export class Config {
             this.agents = DEFAULT_AGENTS.map(a => ({ ...a }));
             this.currentAgentId = 'openclaw';
 
+            // Optional: ElevenLabs API key (included in QR so the app can
+            // auto-configure voice synthesis on first pair). Can be set via
+            // env var or edited in ~/.openclaw-relay/config.json afterwards.
+            this.elevenLabsApiKey = process.env.ELEVENLABS_API_KEY || '';
+
             // Apply env overrides for the default agent
             const envCommand = process.env.OPENCLAW_COMMAND;
             const envWorkdir = process.env.OPENCLAW_WORKDIR || homedir();
@@ -106,7 +111,8 @@ export class Config {
             heartbeatInterval: this.heartbeatInterval,
             commandTimeout: this.commandTimeout,
             agents: this.agents,
-            currentAgentId: this.currentAgentId
+            currentAgentId: this.currentAgentId,
+            elevenLabsApiKey: this.elevenLabsApiKey || ''
         };
         writeFileSync(configPath, JSON.stringify(data, null, 2));
     }
@@ -209,6 +215,9 @@ export class Config {
         const tailscale = this.getTailscaleIP();
         if (tailscale) {
             data.tailscale_url = `wss://${tailscale}:${this.port}/ws`;
+        }
+        if (this.elevenLabsApiKey) {
+            data.elevenlabs_api_key = this.elevenLabsApiKey;
         }
         return data;
     }

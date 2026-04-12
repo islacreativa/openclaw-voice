@@ -125,10 +125,12 @@ struct PairingData: Codable {
     let token: String
     let name: String?
     let tailscaleUrl: String?
+    let elevenlabsApiKey: String?
 
     enum CodingKeys: String, CodingKey {
         case url, token, name
         case tailscaleUrl = "tailscale_url"
+        case elevenlabsApiKey = "elevenlabs_api_key"
     }
 
     static func parse(from qrString: String) -> PairingData? {

@@ -136,6 +136,9 @@ struct ConnectionSetupView: View {
                         if let pairing = PairingData.parse(from: value) {
                             serverURL = pairing.url
                             authToken = pairing.token
+                            if let apiKey = pairing.elevenlabsApiKey, !apiKey.isEmpty {
+                                elevenLabsKey = apiKey
+                            }
                         }
                         showQRScanner = false
                     },
