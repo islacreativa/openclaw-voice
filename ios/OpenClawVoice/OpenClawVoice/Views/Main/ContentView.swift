@@ -11,7 +11,7 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if appState.connectionStatus.isConnected, let chatVM = chatViewModel {
+            if webSocket.connectionStatus.isConnected, let chatVM = chatViewModel {
                 MainTabView(chatViewModel: chatVM, appState: appState, webSocket: webSocket)
             } else {
                 ConnectionSetupView(appState: appState, webSocket: webSocket) {
@@ -21,6 +21,13 @@ struct ContentView: View {
         }
         .onAppear {
             loadSavedConfig()
+            // Pre-initialize services so the chat view model is ready on first connect
+            if chatViewModel == nil {
+                setupServices()
+            }
+        }
+        .onChange(of: webSocket.connectionStatus) { _, newStatus in
+            appState.connectionStatus = newStatus
         }
     }
 

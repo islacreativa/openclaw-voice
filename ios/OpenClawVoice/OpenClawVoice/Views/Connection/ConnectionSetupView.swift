@@ -121,7 +121,8 @@ struct ConnectionSetupView: View {
                 authToken = appState.authToken
                 elevenLabsKey = appState.elevenLabsAPIKey
             }
-            .onChange(of: appState.connectionStatus) { _, newValue in
+            .onChange(of: webSocket.connectionStatus) { _, newValue in
+                appState.connectionStatus = newValue
                 if newValue.isConnected {
                     isConnecting = false
                     onConnected()
