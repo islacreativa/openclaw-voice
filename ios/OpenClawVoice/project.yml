@@ -53,9 +53,6 @@ targets:
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
           UISceneConfigurations:
-            UIWindowSceneSessionRoleApplication:
-              - UISceneConfigurationName: Default Configuration
-                UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).AppDelegate
             CPTemplateApplicationSceneSessionRoleApplication:
               - UISceneConfigurationName: CarPlay Configuration
                 UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).CarPlaySceneDelegate
