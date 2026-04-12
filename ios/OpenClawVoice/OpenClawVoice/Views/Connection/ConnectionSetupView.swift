@@ -206,11 +206,14 @@ struct ConnectionSetupView: View {
             try? KeychainManager.shared.save(elevenLabsKey, forKey: Constants.keychainElevenLabsKey)
         }
 
-        // Connect
-        webSocket.connect(to: serverURL, token: authToken)
-
-        // Request speech permissions
+        // Force Local Network permission prompt, then connect.
         Task {
+            await LocalNetworkPermission.request()
+            await MainActor.run {
+                webSocket.connect(to: serverURL, token: authToken)
+            }
+
+            // Request speech permission in background
             let speechRecognizer = SpeechRecognizer(locale: appState.speechLocale)
             _ = await speechRecognizer.requestAuthorization()
         }

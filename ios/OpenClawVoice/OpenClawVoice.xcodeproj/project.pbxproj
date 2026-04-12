@@ -31,6 +31,7 @@
 		DA1306753C7C8067172CB06A /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348FC131A33A77390FE54992 /* ChatView.swift */; };
 		DB0B16939854FD9B91C82D32 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B03463E01858644027C77454 /* ContentView.swift */; };
 		E211848BA9C101EF657FD52A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6C8115747F8A29C007AE3FD /* SettingsView.swift */; };
+		E742D78F206DD39669EBF5D8 /* LocalNetworkPermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = 345C2EE8AB76162533C6519E /* LocalNetworkPermission.swift */; };
 		EB21420AAB50501966CBBC99 /* CarPlayTemplateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08FEB208DDB2DC728D6A915D /* CarPlayTemplateManager.swift */; };
 /* End PBXBuildFile section */
 
@@ -40,6 +41,7 @@
 		19852BD50B2AE65C170F61AB /* CarPlayVoiceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlayVoiceController.swift; sourceTree = "<group>"; };
 		1FC393F1B6D97C6BA041BCB4 /* OpenClawVoiceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenClawVoiceApp.swift; sourceTree = "<group>"; };
 		30FD177ECF7333719320141D /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		345C2EE8AB76162533C6519E /* LocalNetworkPermission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNetworkPermission.swift; sourceTree = "<group>"; };
 		348FC131A33A77390FE54992 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		42D8913099BFD800F18A3A70 /* OpenClawVoice.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = OpenClawVoice.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4886059CCFCC01942C078526 /* WebSocketManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketManager.swift; sourceTree = "<group>"; };
@@ -137,6 +139,7 @@
 			isa = PBXGroup;
 			children = (
 				734845657653475089F97730 /* ConnectionMonitor.swift */,
+				345C2EE8AB76162533C6519E /* LocalNetworkPermission.swift */,
 			);
 			path = Network;
 			sourceTree = "<group>";
@@ -317,6 +320,7 @@
 				DB0B16939854FD9B91C82D32 /* ContentView.swift in Sources */,
 				344AFCB7DD1DB3982BB837EC /* ElevenLabsService.swift in Sources */,
 				D74CD4EDC2A039C98B309D36 /* KeychainManager.swift in Sources */,
+				E742D78F206DD39669EBF5D8 /* LocalNetworkPermission.swift in Sources */,
 				D6D2E1B59806D2C4F85F4411 /* MessageBubble.swift in Sources */,
 				A02A1EDFF389E224F92EEB8F /* OpenClawVoiceApp.swift in Sources */,
 				4448AD17ACEB73C2B5E79BB8 /* QRScannerView.swift in Sources */,

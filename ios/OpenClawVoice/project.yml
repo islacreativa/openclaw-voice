@@ -44,6 +44,18 @@ targets:
         NSLocalNetworkUsageDescription: "OpenClaw Voice connects to your Mac on the local network"
         NSBonjourServices:
           - _openclaw._tcp
+        # ATS exceptions: the relay server uses a self-signed TLS certificate
+        # on a local/private IP. We explicitly allow insecure loads for local
+        # networking so iOS doesn't block the WebSocket handshake.
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+          NSAllowsArbitraryLoadsInWebContent: true
+          NSAllowsLocalNetworking: true
+          NSExceptionDomains:
+            local:
+              NSIncludesSubdomains: true
+              NSExceptionAllowsInsecureHTTPLoads: true
+              NSExceptionRequiresForwardSecrecy: false
         UIBackgroundModes:
           - audio
           - voip
