@@ -1,11 +1,20 @@
 import { createServer } from 'https';
 import { WebSocketServer as WSServer } from 'ws';
 import { v4 as uuid } from 'uuid';
+import { exec } from 'child_process';
 import { Auth } from './auth.js';
 import { MessageHandler } from './message-handler.js';
 import { attachHttpApi } from './http-api.js';
 import { logger } from '../utils/logger.js';
 import { generateCerts } from '../utils/tls.js';
+
+// Free a TCP port by killing whatever process is holding it.
+// Used as a fallback when a previous relay instance left the port bound.
+function killPortHolders(port) {
+    return new Promise((resolve) => {
+        exec(`lsof -ti :${port} | xargs kill -9`, () => resolve());
+    });
+}
 
 export class WebSocketServer {
     constructor({ port, certsPath, openclawBridge, sessionManager, authToken, config }) {
@@ -131,11 +140,23 @@ export class WebSocketServer {
             });
         });
 
-        return new Promise((resolve) => {
-            httpsServer.listen(this.port, '0.0.0.0', () => {
-                logger.info(`WebSocket server listening on wss://0.0.0.0:${this.port}`);
-                resolve();
-            });
+        return new Promise((resolve, reject) => {
+            const tryListen = (retried = false) => {
+                httpsServer.once('error', async (err) => {
+                    if (err.code === 'EADDRINUSE' && !retried) {
+                        logger.warn(`Port ${this.port} busy — attempting to free it and retry...`);
+                        await killPortHolders(this.port);
+                        setTimeout(() => tryListen(true), 500);
+                    } else {
+                        reject(err);
+                    }
+                });
+                httpsServer.listen(this.port, '0.0.0.0', () => {
+                    logger.info(`WebSocket server listening on wss://0.0.0.0:${this.port}`);
+                    resolve();
+                });
+            };
+            tryListen();
         });
     }
 
