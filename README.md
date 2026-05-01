@@ -29,15 +29,24 @@ Talk to any stdin/stdout AI assistant running on your Mac using natural voice co
 ## Features
 
 - **Multi-agent support** — run OpenClaw, NemoClaw, or any other stdin/stdout AI agent. Switch between agents from the app.
-- **Voice-first interaction** — push-to-talk with on-device speech recognition
+- **Voice-first interaction** — push-to-talk with on-device speech recognition + voice activity detection
+- **Real-time conversational AI** — optional ElevenLabs Agent mode with full-duplex streaming and OpenAI-compatible HTTP backend
 - **Streaming responses** — hear the agent's answer as it's being generated, not after
-- **Apple CarPlay** — minimalist, voice-driven interface for safe driving
+- **Apple CarPlay** — minimalist, voice-driven interface with `CPVoiceControlTemplate` for safe driving
 - **ElevenLabs TTS** — multilingual, high-quality voice synthesis with configurable voices
-- **Secure by default** — TLS encryption, token auth, iOS Keychain storage
-- **Remote access** — works outside your local network via Tailscale VPN
-- **Remote config** — manage agent settings, MCPs, and logs from your phone
+- **Secure by default** — TLS encryption, token auth, iOS Keychain storage, optional 4-6 digit PIN gating sensitive remote actions
+- **Remote access** — works outside your local network via Tailscale VPN with auto-detection and automatic LAN→Tailscale fallback
+- **Remote config dashboard** — from the iPhone you can:
+  - Monitor Mac status (CPU, RAM, battery, disk, uptime)
+  - View live relay + OpenClaw logs with level/source filters
+  - Manage MCPs (enable/disable, status)
+  - Edit OpenClaw command/workdir/env vars (API keys masked)
+  - Restart OpenClaw or the relay, regenerate the auth token, backup/restore config
 - **QR code pairing** — scan to connect the app to your Mac
-- **Auto-reconnection** — exponential backoff, transparent session recovery
+- **Auto-reconnection** — exponential backoff, transparent session recovery, on-screen disconnect notifications
+- **Echo cancellation + mic gating** — prevents the model hearing its own TTS output
+- **Waveform UI** — visual feedback while the agent listens or speaks
+- **launchd autostart** — relay can run as a background service on the Mac
 
 ## Architecture
 
@@ -155,17 +164,18 @@ Any CLI assistant that reads from stdin and writes to stdout will work.
 | [`docs/SERVER.md`](openclaw-voice-app/docs/SERVER.md) | Relay server specification |
 | [`docs/REMOTE-CONFIG.md`](openclaw-voice-app/docs/REMOTE-CONFIG.md) | Remote OpenClaw configuration |
 | [`docs/SETUP.md`](openclaw-voice-app/docs/SETUP.md) | Setup and deployment guide |
+| [`docs/TAILSCALE.md`](openclaw-voice-app/docs/TAILSCALE.md) | Remote access over Tailscale (LAN + VPN fallback) |
 | [`specs/ROADMAP.md`](openclaw-voice-app/specs/ROADMAP.md) | Development roadmap and sprints |
 
 ## Development Roadmap
 
-| Sprint | Focus | Deliverable |
-|--------|-------|------------|
-| **Sprint 1** | Relay Server + basic iOS app | Send text from app, see OpenClaw's response |
-| **Sprint 2** | Voice pipeline (STT + TTS) | **MVP: speak to iPhone, hear OpenClaw's answer** |
-| **Sprint 3** | Apple CarPlay | Full voice flow in CarPlay simulator |
-| **Sprint 4** | Polish, remote config, deploy | Production-ready for daily use |
-| **Sprint 5** | Enhancements | Wake word, persistent history, Watch app, widgets |
+| Sprint | Focus | Status |
+|--------|-------|--------|
+| **Sprint 1** | Relay Server + basic iOS app | ✅ Done |
+| **Sprint 2** | Voice pipeline (STT + TTS + real-time agent) | ✅ Done — MVP shipped |
+| **Sprint 3** | Apple CarPlay | ✅ Code complete (templates + voice flow); device test + entitlement pending |
+| **Sprint 4** | Polish, remote config, deploy | ✅ Code complete; physical device testing pending |
+| **Sprint 5** | Enhancements (wake word, history, Watch, widgets) | 🟡 Backlog |
 
 See the full roadmap with task breakdowns: [`specs/ROADMAP.md`](openclaw-voice-app/specs/ROADMAP.md)
 
