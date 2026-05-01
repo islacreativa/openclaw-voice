@@ -112,7 +112,8 @@ export class Config {
             commandTimeout: this.commandTimeout,
             agents: this.agents,
             currentAgentId: this.currentAgentId,
-            elevenLabsApiKey: this.elevenLabsApiKey || ''
+            elevenLabsApiKey: this.elevenLabsApiKey || '',
+            securityPinHash: this.securityPinHash || null
         };
         writeFileSync(configPath, JSON.stringify(data, null, 2));
     }

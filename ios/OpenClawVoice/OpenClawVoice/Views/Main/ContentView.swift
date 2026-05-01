@@ -7,12 +7,13 @@ struct ContentView: View {
     @State private var audioPlayer = AudioPlayerService()
     @State private var elevenLabs: ElevenLabsService?
     @State private var chatViewModel: ChatViewModel?
+    @State private var configService: RemoteConfigService?
     @State private var showConnectionSetup = false
 
     var body: some View {
         Group {
-            if webSocket.connectionStatus.isConnected, let chatVM = chatViewModel {
-                MainTabView(chatViewModel: chatVM, appState: appState, webSocket: webSocket)
+            if webSocket.connectionStatus.isConnected, let chatVM = chatViewModel, let configService {
+                MainTabView(chatViewModel: chatVM, appState: appState, webSocket: webSocket, configService: configService)
             } else {
                 ConnectionSetupView(appState: appState, webSocket: webSocket) {
                     setupServices()
@@ -21,6 +22,7 @@ struct ContentView: View {
         }
         .onAppear {
             loadSavedConfig()
+            DisconnectNotifier.shared.requestAuthorization()
             // Pre-initialize services so the chat view model is ready on first connect
             if chatViewModel == nil {
                 setupServices()
@@ -38,6 +40,10 @@ struct ContentView: View {
             appState.authToken = token
         }
 
+        if let fallback = KeychainManager.shared.load(forKey: Constants.keychainFallbackURLKey) {
+            appState.fallbackURL = fallback
+        }
+
         if let apiKey = KeychainManager.shared.load(forKey: Constants.keychainElevenLabsKey) {
             appState.elevenLabsAPIKey = apiKey
         }
@@ -51,6 +57,26 @@ struct ContentView: View {
         let el = ElevenLabsService(apiKey: appState.elevenLabsAPIKey)
         self.elevenLabs = el
         self.chatViewModel = ChatViewModel(
+            appState: appState,
+            webSocket: webSocket,
+            speechRecognizer: speechRecognizer,
+            elevenLabs: el,
+            audioPlayer: audioPlayer
+        )
+
+        // Remote config (logs, MCPs, system status, etc.) shares the WS.
+        let cfg = RemoteConfigService(webSocket: webSocket)
+        self.configService = cfg
+
+        // Chain WS message handler so config + chat both get updates.
+        let existing = webSocket.onMessage
+        webSocket.onMessage = { [weak cfg] msg in
+            existing?(msg)
+            cfg?.handle(msg)
+        }
+
+        // Make services available to the CarPlay scene.
+        CarPlayCoordinator.shared.register(
             appState: appState,
             webSocket: webSocket,
             speechRecognizer: speechRecognizer,
@@ -84,6 +110,7 @@ struct MainTabView: View {
     let chatViewModel: ChatViewModel
     let appState: AppState
     let webSocket: WebSocketManager
+    let configService: RemoteConfigService
 
     var body: some View {
         TabView {
@@ -99,7 +126,7 @@ struct MainTabView: View {
                 Label("Realtime", systemImage: "waveform.circle")
             }
 
-            SettingsView(appState: appState, webSocket: webSocket)
+            SettingsView(appState: appState, webSocket: webSocket, configService: configService)
                 .tabItem {
                     Label("Settings", systemImage: "gear")
                 }

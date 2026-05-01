@@ -9,10 +9,13 @@ class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
         didConnect interfaceController: CPInterfaceController
     ) {
         self.interfaceController = interfaceController
-        self.templateManager = CarPlayTemplateManager(interfaceController: interfaceController)
-        templateManager?.setupRootTemplate()
-
-        NotificationCenter.default.post(name: .carPlayDidConnect, object: nil)
+        Task { @MainActor in
+            let manager = CarPlayTemplateManager(interfaceController: interfaceController)
+            self.templateManager = manager
+            manager.setupRootTemplate()
+            CarPlayCoordinator.shared.appState?.isCarPlayConnected = true
+            NotificationCenter.default.post(name: .carPlayDidConnect, object: nil)
+        }
     }
 
     func templateApplicationScene(
@@ -21,8 +24,10 @@ class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
     ) {
         self.interfaceController = nil
         self.templateManager = nil
-
-        NotificationCenter.default.post(name: .carPlayDidDisconnect, object: nil)
+        Task { @MainActor in
+            CarPlayCoordinator.shared.appState?.isCarPlayConnected = false
+            NotificationCenter.default.post(name: .carPlayDidDisconnect, object: nil)
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
 import { logger } from '../../utils/logger.js';
+import { logBus } from '../../utils/log-bus.js';
 
 /**
  * OpenClaw adapter: invokes `openclaw agent --message "..." --json` per
@@ -93,8 +94,15 @@ export class OpenClawAdapter extends EventEmitter {
             }
 
             logger.info(`[OpenClaw] Response: ${fullText.length} chars`);
+            logBus.publish({
+                level: 'info',
+                source: 'openclaw',
+                message: `Command processed (${fullText.length} chars)`,
+                metadata: { commandId }
+            });
         } catch (err) {
             logger.error(`[OpenClaw] Error: ${err.message}`);
+            logBus.publish({ level: 'error', source: 'openclaw', message: err.message });
             this.emit('response_error', { commandId, message: err.message });
         } finally {
             this.isProcessing = false;
@@ -150,6 +158,10 @@ export class OpenClawAdapter extends EventEmitter {
                 const text = data.toString();
                 stderr += text;
                 logger.debug(`[OpenClaw stderr] ${text.trim()}`);
+                const trimmed = text.trim();
+                if (trimmed) {
+                    logBus.publish({ level: 'warn', source: 'openclaw', message: trimmed });
+                }
             });
 
             proc.on('close', (code) => {

@@ -17,6 +17,7 @@
 		6AB5156C45ED5B2F350036F8 /* CarPlayVoiceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19852BD50B2AE65C170F61AB /* CarPlayVoiceController.swift */; };
 		7EBB8EAB2EA432CBD24F3103 /* SpeechRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9902040F1ADAF28DEAE64BEB /* SpeechRecognizer.swift */; };
 		835B558DB1E4E433014D3D42 /* ConnectionMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 734845657653475089F97730 /* ConnectionMonitor.swift */; };
+		8E51F548506EA16B1D920378 /* VoiceActivityDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68204AC096B99086747EB0F6 /* VoiceActivityDetector.swift */; };
 		96D12CB32952C789326221A0 /* AudioPlayerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A013D283D7C774EA7604D8DC /* AudioPlayerService.swift */; };
 		A02A1EDFF389E224F92EEB8F /* OpenClawVoiceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FC393F1B6D97C6BA041BCB4 /* OpenClawVoiceApp.swift */; };
 		A4992C493D8E3F1513FFD7CB /* ConnectionStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7D064B69CCB2E57790152CD /* ConnectionStatus.swift */; };
@@ -25,7 +26,9 @@
 		B2FCFF69FF1F56895DE923EF /* Agent.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10D64FAEACDEF4AF716E46E /* Agent.swift */; };
 		B8BE0801FA3CCC48EBAF70E0 /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C9577F6C854D26D98E3195 /* ChatMessage.swift */; };
 		B9F8F382E941A073BC3D4067 /* ConnectionSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5D19BEC4B21E73E4AD7CF12 /* ConnectionSetupView.swift */; };
+		BCBE3F60E5695C40B52B2268 /* DisconnectNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = A841FBD8D8EAB43008F5FF09 /* DisconnectNotifier.swift */; };
 		BD66C323B467297EDB256694 /* CarPlaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 905BB97BFBE3A44758930025 /* CarPlaySceneDelegate.swift */; };
+		D36E267519B1E1EFB636401D /* WaveformView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFBA830F5C5613A56563FE3B /* WaveformView.swift */; };
 		D610C9969EB0D2A3557B015A /* WebSocketManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4886059CCFCC01942C078526 /* WebSocketManager.swift */; };
 		D6D2E1B59806D2C4F85F4411 /* MessageBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 839519AB347C35E87375FD7E /* MessageBubble.swift */; };
 		D74CD4EDC2A039C98B309D36 /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B64F59DB5D06A0C4ACEB06F3 /* KeychainManager.swift */; };
@@ -35,6 +38,16 @@
 		E211848BA9C101EF657FD52A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6C8115747F8A29C007AE3FD /* SettingsView.swift */; };
 		E742D78F206DD39669EBF5D8 /* LocalNetworkPermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = 345C2EE8AB76162533C6519E /* LocalNetworkPermission.swift */; };
 		EB21420AAB50501966CBBC99 /* CarPlayTemplateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08FEB208DDB2DC728D6A915D /* CarPlayTemplateManager.swift */; };
+		E583D2B629ED9A55C09A8EDA /* RemoteConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47EEDAFCA63DF6087FD8F51A /* RemoteConfig.swift */; };
+		620BE200F7D5A236794D17EA /* RemoteConfigService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101CD82D3B93790C1BA6D7BC /* RemoteConfigService.swift */; };
+		5E289FB89F29453664B20EC8 /* SystemStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C115F3502E7EAF89186DA8 /* SystemStatusView.swift */; };
+		0B4248A0082CD2F6E53EC607 /* OpenClawConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EABD5E99CC8AE66CB0E549C8 /* OpenClawConfigView.swift */; };
+		1EB4D75ABE5FDA2C8446F6F0 /* MCPManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1807013271ED9E603929D90A /* MCPManagementView.swift */; };
+		332EF53DF0FAE88AAE3B072E /* LogViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF164841659855CFED5B7594 /* LogViewerView.swift */; };
+		E9D028E533340106D6A16F11 /* RelayConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41F1E85AB051B2B523DF585E /* RelayConfigView.swift */; };
+		A2FE75E9D51EB8D975445D17 /* PINGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBEFA62BDB6087896783F219 /* PINGateView.swift */; };
+		C181811C02EFA53AE0851018 /* SecurityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E418BF9CF673A2E8C2DD6013 /* SecurityView.swift */; };
+		30202F584F85A220476A35E3 /* CarPlayCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAC5DEC38952D9E27F73FFF4 /* CarPlayCoordinator.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -46,9 +59,10 @@
 		30FD177ECF7333719320141D /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		345C2EE8AB76162533C6519E /* LocalNetworkPermission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNetworkPermission.swift; sourceTree = "<group>"; };
 		348FC131A33A77390FE54992 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
-		42D8913099BFD800F18A3A70 /* OpenClawVoice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OpenClawVoice.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		42D8913099BFD800F18A3A70 /* OpenClawVoice.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = OpenClawVoice.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4886059CCFCC01942C078526 /* WebSocketManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketManager.swift; sourceTree = "<group>"; };
 		552098DA8404289FE8ADF0A9 /* ServerMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerMessage.swift; sourceTree = "<group>"; };
+		68204AC096B99086747EB0F6 /* VoiceActivityDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceActivityDetector.swift; sourceTree = "<group>"; };
 		6F6644D80E05D0C546AF3895 /* ElevenLabsConversationalService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElevenLabsConversationalService.swift; sourceTree = "<group>"; };
 		734845657653475089F97730 /* ConnectionMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionMonitor.swift; sourceTree = "<group>"; };
 		81A5D76C2D373C70070EB655 /* VoiceButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceButton.swift; sourceTree = "<group>"; };
@@ -58,16 +72,29 @@
 		A013D283D7C774EA7604D8DC /* AudioPlayerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayerService.swift; sourceTree = "<group>"; };
 		A0E75F892AD001EC2CDDC17E /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
 		A5D19BEC4B21E73E4AD7CF12 /* ConnectionSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionSetupView.swift; sourceTree = "<group>"; };
+		A841FBD8D8EAB43008F5FF09 /* DisconnectNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisconnectNotifier.swift; sourceTree = "<group>"; };
 		B03463E01858644027C77454 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		B64F59DB5D06A0C4ACEB06F3 /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
 		B6C8115747F8A29C007AE3FD /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		BD3BC85C322A4F3B77DCF00C /* ElevenLabsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElevenLabsService.swift; sourceTree = "<group>"; };
 		C59BA4C00E483252DB3C5C20 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		54271EDA7AA505CD19405F5E /* OpenClawVoice.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OpenClawVoice.entitlements; sourceTree = "<group>"; };
 		DC90FAFEB947F9AA85D477B5 /* AgentPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentPickerView.swift; sourceTree = "<group>"; };
+		DFBA830F5C5613A56563FE3B /* WaveformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveformView.swift; sourceTree = "<group>"; };
 		E10D64FAEACDEF4AF716E46E /* Agent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Agent.swift; sourceTree = "<group>"; };
 		E7D064B69CCB2E57790152CD /* ConnectionStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionStatus.swift; sourceTree = "<group>"; };
 		FB6B012F4EB737A0AB264956 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		FEBBFF95A33B14998D147869 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
+		47EEDAFCA63DF6087FD8F51A /* RemoteConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteConfig.swift; sourceTree = "<group>"; };
+		101CD82D3B93790C1BA6D7BC /* RemoteConfigService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteConfigService.swift; sourceTree = "<group>"; };
+		18C115F3502E7EAF89186DA8 /* SystemStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemStatusView.swift; sourceTree = "<group>"; };
+		EABD5E99CC8AE66CB0E549C8 /* OpenClawConfigView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenClawConfigView.swift; sourceTree = "<group>"; };
+		1807013271ED9E603929D90A /* MCPManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPManagementView.swift; sourceTree = "<group>"; };
+		EF164841659855CFED5B7594 /* LogViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewerView.swift; sourceTree = "<group>"; };
+		41F1E85AB051B2B523DF585E /* RelayConfigView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelayConfigView.swift; sourceTree = "<group>"; };
+		EBEFA62BDB6087896783F219 /* PINGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINGateView.swift; sourceTree = "<group>"; };
+		E418BF9CF673A2E8C2DD6013 /* SecurityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityView.swift; sourceTree = "<group>"; };
+		DAC5DEC38952D9E27F73FFF4 /* CarPlayCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlayCoordinator.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -82,6 +109,7 @@
 		25874B1D5C2C2E11B3D95D05 /* CarPlay */ = {
 			isa = PBXGroup;
 			children = (
+				DAC5DEC38952D9E27F73FFF4 /* CarPlayCoordinator.swift */,
 				905BB97BFBE3A44758930025 /* CarPlaySceneDelegate.swift */,
 				08FEB208DDB2DC728D6A915D /* CarPlayTemplateManager.swift */,
 				19852BD50B2AE65C170F61AB /* CarPlayVoiceController.swift */,
@@ -122,7 +150,14 @@
 			isa = PBXGroup;
 			children = (
 				DC90FAFEB947F9AA85D477B5 /* AgentPickerView.swift */,
+				EF164841659855CFED5B7594 /* LogViewerView.swift */,
+				1807013271ED9E603929D90A /* MCPManagementView.swift */,
+				EABD5E99CC8AE66CB0E549C8 /* OpenClawConfigView.swift */,
+				EBEFA62BDB6087896783F219 /* PINGateView.swift */,
+				41F1E85AB051B2B523DF585E /* RelayConfigView.swift */,
+				E418BF9CF673A2E8C2DD6013 /* SecurityView.swift */,
 				B6C8115747F8A29C007AE3FD /* SettingsView.swift */,
+				18C115F3502E7EAF89186DA8 /* SystemStatusView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -132,6 +167,7 @@
 			children = (
 				93929BBD177710A57D29A4F2 /* Config */,
 				82E7F5A93D5BEDDE058323A4 /* Network */,
+				FC9EB9E0A445B3D1700D2D84 /* Notifications */,
 				F4DE3F6C198F939082B1CC77 /* Security */,
 				FABCF2257698C4C5F9B154D5 /* Voice */,
 				DB0945CAB1B16CCDD443E246 /* WebSocket */,
@@ -164,6 +200,7 @@
 				E10D64FAEACDEF4AF716E46E /* Agent.swift */,
 				17C9577F6C854D26D98E3195 /* ChatMessage.swift */,
 				E7D064B69CCB2E57790152CD /* ConnectionStatus.swift */,
+				47EEDAFCA63DF6087FD8F51A /* RemoteConfig.swift */,
 				552098DA8404289FE8ADF0A9 /* ServerMessage.swift */,
 			);
 			path = Models;
@@ -172,6 +209,7 @@
 		93929BBD177710A57D29A4F2 /* Config */ = {
 			isa = PBXGroup;
 			children = (
+				101CD82D3B93790C1BA6D7BC /* RemoteConfigService.swift */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -180,6 +218,7 @@
 			isa = PBXGroup;
 			children = (
 				C59BA4C00E483252DB3C5C20 /* Info.plist */,
+				54271EDA7AA505CD19405F5E /* OpenClawVoice.entitlements */,
 				1FC393F1B6D97C6BA041BCB4 /* OpenClawVoiceApp.swift */,
 				25874B1D5C2C2E11B3D95D05 /* CarPlay */,
 				405DDE03CDF40F7F8B8555BA /* Core */,
@@ -238,6 +277,7 @@
 				6F6644D80E05D0C546AF3895 /* ElevenLabsConversationalService.swift */,
 				BD3BC85C322A4F3B77DCF00C /* ElevenLabsService.swift */,
 				9902040F1ADAF28DEAE64BEB /* SpeechRecognizer.swift */,
+				68204AC096B99086747EB0F6 /* VoiceActivityDetector.swift */,
 			);
 			path = Voice;
 			sourceTree = "<group>";
@@ -247,8 +287,17 @@
 			children = (
 				839519AB347C35E87375FD7E /* MessageBubble.swift */,
 				81A5D76C2D373C70070EB655 /* VoiceButton.swift */,
+				DFBA830F5C5613A56563FE3B /* WaveformView.swift */,
 			);
 			path = Components;
+			sourceTree = "<group>";
+		};
+		FC9EB9E0A445B3D1700D2D84 /* Notifications */ = {
+			isa = PBXGroup;
+			children = (
+				A841FBD8D8EAB43008F5FF09 /* DisconnectNotifier.swift */,
+			);
+			path = Notifications;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -313,6 +362,7 @@
 				AFEB4425471C0E7E67E07E9B /* AgentPickerView.swift in Sources */,
 				A61B3FF5A6DB0CA74082CDD1 /* AppState.swift in Sources */,
 				96D12CB32952C789326221A0 /* AudioPlayerService.swift in Sources */,
+				30202F584F85A220476A35E3 /* CarPlayCoordinator.swift in Sources */,
 				BD66C323B467297EDB256694 /* CarPlaySceneDelegate.swift in Sources */,
 				EB21420AAB50501966CBBC99 /* CarPlayTemplateManager.swift in Sources */,
 				6AB5156C45ED5B2F350036F8 /* CarPlayVoiceController.swift in Sources */,
@@ -324,18 +374,30 @@
 				A4992C493D8E3F1513FFD7CB /* ConnectionStatus.swift in Sources */,
 				2868BE49418787422D29DCC9 /* Constants.swift in Sources */,
 				DB0B16939854FD9B91C82D32 /* ContentView.swift in Sources */,
+				BCBE3F60E5695C40B52B2268 /* DisconnectNotifier.swift in Sources */,
 				E0DA110103DB3AFB03F563CD /* ElevenLabsConversationalService.swift in Sources */,
 				344AFCB7DD1DB3982BB837EC /* ElevenLabsService.swift in Sources */,
 				D74CD4EDC2A039C98B309D36 /* KeychainManager.swift in Sources */,
 				E742D78F206DD39669EBF5D8 /* LocalNetworkPermission.swift in Sources */,
+				332EF53DF0FAE88AAE3B072E /* LogViewerView.swift in Sources */,
+				1EB4D75ABE5FDA2C8446F6F0 /* MCPManagementView.swift in Sources */,
 				D6D2E1B59806D2C4F85F4411 /* MessageBubble.swift in Sources */,
+				0B4248A0082CD2F6E53EC607 /* OpenClawConfigView.swift in Sources */,
 				A02A1EDFF389E224F92EEB8F /* OpenClawVoiceApp.swift in Sources */,
+				A2FE75E9D51EB8D975445D17 /* PINGateView.swift in Sources */,
 				4448AD17ACEB73C2B5E79BB8 /* QRScannerView.swift in Sources */,
 				4F107373FF986536DFEDE33F /* RealtimeConversationView.swift in Sources */,
+				E9D028E533340106D6A16F11 /* RelayConfigView.swift in Sources */,
+				E583D2B629ED9A55C09A8EDA /* RemoteConfig.swift in Sources */,
+				620BE200F7D5A236794D17EA /* RemoteConfigService.swift in Sources */,
+				C181811C02EFA53AE0851018 /* SecurityView.swift in Sources */,
 				294C6C41F9DD4C602940464F /* ServerMessage.swift in Sources */,
 				E211848BA9C101EF657FD52A /* SettingsView.swift in Sources */,
 				7EBB8EAB2EA432CBD24F3103 /* SpeechRecognizer.swift in Sources */,
+				5E289FB89F29453664B20EC8 /* SystemStatusView.swift in Sources */,
+				8E51F548506EA16B1D920378 /* VoiceActivityDetector.swift in Sources */,
 				37016F491C2A4FF90110852F /* VoiceButton.swift in Sources */,
+				D36E267519B1E1EFB636401D /* WaveformView.swift in Sources */,
 				D610C9969EB0D2A3557B015A /* WebSocketManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -405,9 +467,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				CODE_SIGN_ENTITLEMENTS = OpenClawVoice/OpenClawVoice.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 3H53Q8U99C;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = OpenClawVoice/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -490,9 +552,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				CODE_SIGN_ENTITLEMENTS = OpenClawVoice/OpenClawVoice.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 3H53Q8U99C;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = OpenClawVoice/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (

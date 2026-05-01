@@ -16,6 +16,10 @@ final class SpeechRecognizer {
     var isAuthorized: Bool = false
     var error: String?
 
+    // Optional VAD; when set, receives every mic buffer so the UI can render
+    // live waveforms and auto-stop on silence.
+    var voiceActivityDetector: VoiceActivityDetector?
+
     init(locale: String = "es-ES") {
         self.speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: locale))
     }
@@ -70,6 +74,7 @@ final class SpeechRecognizer {
 
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
             self?.recognitionRequest?.append(buffer)
+            self?.voiceActivityDetector?.process(buffer: buffer)
         }
 
         // Start recognition

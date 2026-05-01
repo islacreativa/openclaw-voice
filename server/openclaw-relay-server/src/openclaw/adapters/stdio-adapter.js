@@ -2,6 +2,7 @@ import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
 import readline from 'readline';
 import { logger } from '../../utils/logger.js';
+import { logBus } from '../../utils/log-bus.js';
 
 /**
  * Generic stdin/stdout REPL adapter. Spawns the agent once and streams
@@ -48,7 +49,10 @@ export class StdioAdapter extends EventEmitter {
 
         this.process.stderr.on('data', (data) => {
             const text = data.toString().trim();
-            if (text) logger.debug(`[${this.agent.name}] stderr: ${text}`);
+            if (text) {
+                logger.debug(`[${this.agent.name}] stderr: ${text}`);
+                logBus.publish({ level: 'warn', source: this.agent.id || 'agent', message: text });
+            }
         });
 
         this.process.on('close', (code) => {

@@ -2,15 +2,21 @@ import { Config } from './config.js';
 import { WebSocketServer } from './server/websocket-server.js';
 import { AgentBridge } from './openclaw/bridge.js';
 import { SessionManager } from './session/session-manager.js';
+import { ConfigHandler } from './server/config-handler.js';
 import { showSetupQR } from './utils/qr-setup.js';
 import { logger } from './utils/logger.js';
+import { logBus } from './utils/log-bus.js';
 
 async function main() {
+    // Capture console output into the log bus so the iOS app can stream logs.
+    logBus.install();
+
     logger.info('Starting OpenClaw Voice Relay Server...');
 
     const config = new Config();
     const sessionManager = new SessionManager();
     const openclawBridge = new AgentBridge(config);
+    const relayStartedAt = Date.now();
 
     // Log configured agents
     logger.info(`Configured agents: ${config.agents.map(a => a.name).join(', ')}`);
@@ -38,6 +44,16 @@ async function main() {
     });
 
     await server.start();
+
+    // Wire config handler (Remote Config API)
+    const configHandler = new ConfigHandler({
+        bridge: openclawBridge,
+        config,
+        sessionManager,
+        server,
+        relayStartedAt
+    });
+    server.setConfigHandler(configHandler);
 
     // Show connection info
     showSetupQR(config);

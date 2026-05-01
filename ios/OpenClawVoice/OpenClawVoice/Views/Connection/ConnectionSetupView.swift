@@ -8,6 +8,7 @@ struct ConnectionSetupView: View {
     let onConnected: () -> Void
 
     @State private var serverURL: String = ""
+    @State private var fallbackURL: String = ""
     @State private var authToken: String = ""
     @State private var elevenLabsKey: String = ""
     @State private var isConnecting = false
@@ -59,6 +60,11 @@ struct ConnectionSetupView: View {
                                 pasteableField(
                                     placeholder: "wss://192.168.1.X:8765/ws",
                                     text: $serverURL,
+                                    keyboard: .URL
+                                )
+                                pasteableField(
+                                    placeholder: "wss://100.x.y.z:8765/ws (Tailscale, optional)",
+                                    text: $fallbackURL,
                                     keyboard: .URL
                                 )
                                 pasteableField(
@@ -118,6 +124,7 @@ struct ConnectionSetupView: View {
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 serverURL = appState.serverURL
+                fallbackURL = appState.fallbackURL
                 authToken = appState.authToken
                 elevenLabsKey = appState.elevenLabsAPIKey
             }
@@ -136,6 +143,7 @@ struct ConnectionSetupView: View {
                     onResult: { value in
                         if let pairing = PairingData.parse(from: value) {
                             serverURL = pairing.url
+                            fallbackURL = pairing.tailscaleUrl ?? ""
                             authToken = pairing.token
                             if let apiKey = pairing.elevenlabsApiKey, !apiKey.isEmpty {
                                 elevenLabsKey = apiKey
@@ -197,11 +205,13 @@ struct ConnectionSetupView: View {
 
         // Save to state
         appState.serverURL = serverURL
+        appState.fallbackURL = fallbackURL
         appState.authToken = authToken
         appState.elevenLabsAPIKey = elevenLabsKey
 
         // Save to keychain
         try? KeychainManager.shared.save(serverURL, forKey: Constants.keychainServerURLKey)
+        try? KeychainManager.shared.save(fallbackURL, forKey: Constants.keychainFallbackURLKey)
         try? KeychainManager.shared.save(authToken, forKey: Constants.keychainTokenKey)
         if !elevenLabsKey.isEmpty {
             try? KeychainManager.shared.save(elevenLabsKey, forKey: Constants.keychainElevenLabsKey)
@@ -211,7 +221,7 @@ struct ConnectionSetupView: View {
         Task {
             await LocalNetworkPermission.request()
             await MainActor.run {
-                webSocket.connect(to: serverURL, token: authToken)
+                webSocket.connect(to: serverURL, token: authToken, fallback: fallbackURL)
             }
 
             // Request speech permission in background

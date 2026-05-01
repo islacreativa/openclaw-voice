@@ -10,5 +10,7 @@ enum Constants {
     static let keychainTokenKey = "server-auth-token"
     static let keychainElevenLabsKey = "elevenlabs-api-key"
     static let keychainServerURLKey = "server-url"
+    static let keychainFallbackURLKey = "server-fallback-url"
     static let keychainElevenLabsAgentIdKey = "elevenlabs-agent-id"
+    static let connectAttemptTimeout: TimeInterval = 6
 }

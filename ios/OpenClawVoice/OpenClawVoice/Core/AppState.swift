@@ -6,6 +6,7 @@ final class AppState {
     // Connection
     var connectionStatus: ConnectionStatus = .disconnected
     var serverURL: String = ""
+    var fallbackURL: String = ""
     var authToken: String = ""
     var sessionId: String?
 

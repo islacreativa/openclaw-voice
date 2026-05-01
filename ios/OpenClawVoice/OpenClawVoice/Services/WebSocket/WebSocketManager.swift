@@ -7,10 +7,12 @@ final class WebSocketManager {
     private var webSocket: URLSessionWebSocketTask?
     private var session: URLSession?
     private var sessionDelegate: SelfSignedCertDelegate?
-    private var serverURL: URL?
+    private var candidateURLs: [URL] = []
+    private var currentCandidateIndex = 0
     private var authToken: String = ""
     private var heartbeatTask: Task<Void, Never>?
     private var receiveTask: Task<Void, Never>?
+    private var connectTimeoutTask: Task<Void, Never>?
     private var reconnectAttempt = 0
 
     var connectionStatus: ConnectionStatus = .disconnected
@@ -18,13 +20,21 @@ final class WebSocketManager {
 
     // MARK: - Connect
 
-    func connect(to urlString: String, token: String) {
-        guard let url = URL(string: urlString) else {
+    func connect(to urlString: String, token: String, fallback: String? = nil) {
+        var urls: [URL] = []
+        if let u = URL(string: urlString) { urls.append(u) }
+        if let fb = fallback?.trimmingCharacters(in: .whitespaces),
+           !fb.isEmpty, fb != urlString,
+           let u = URL(string: fb) {
+            urls.append(u)
+        }
+        guard !urls.isEmpty else {
             connectionStatus = .error("Invalid URL")
             return
         }
 
-        self.serverURL = url
+        self.candidateURLs = urls
+        self.currentCandidateIndex = 0
         self.authToken = token
         self.reconnectAttempt = 0
         performConnect()
@@ -41,14 +51,47 @@ final class WebSocketManager {
         operationQueue.qualityOfService = .userInitiated
         session = URLSession(configuration: .default, delegate: delegate, delegateQueue: operationQueue)
 
-        guard let url = serverURL else { return }
-        print("[WS] Connecting to \(url)")
+        guard currentCandidateIndex < candidateURLs.count else { return }
+        let url = candidateURLs[currentCandidateIndex]
+        print("[WS] Connecting to \(url) (candidate \(currentCandidateIndex + 1)/\(candidateURLs.count))")
         webSocket = session?.webSocketTask(with: url)
         webSocket?.resume()
 
         connectionStatus = .authenticating
         sendAuth()
         startReceiving()
+        startConnectTimeout()
+    }
+
+    // Times out the current candidate if we don't receive authOk in time.
+    // On timeout, we try the next candidate (e.g. Tailscale fallback).
+    private func startConnectTimeout() {
+        connectTimeoutTask?.cancel()
+        let attemptIndex = currentCandidateIndex
+        connectTimeoutTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(Constants.connectAttemptTimeout))
+            guard let self, !Task.isCancelled else { return }
+            await MainActor.run {
+                guard self.currentCandidateIndex == attemptIndex,
+                      !self.connectionStatus.isConnected else { return }
+                print("[WS] Candidate \(attemptIndex + 1) timed out, trying next")
+                self.tryNextCandidateOrFail(reason: "Connection timed out")
+            }
+        }
+    }
+
+    private func tryNextCandidateOrFail(reason: String) {
+        connectTimeoutTask?.cancel()
+        receiveTask?.cancel()
+        webSocket?.cancel(with: .abnormalClosure, reason: nil)
+        webSocket = nil
+
+        if currentCandidateIndex + 1 < candidateURLs.count {
+            currentCandidateIndex += 1
+            performConnect()
+        } else {
+            connectionStatus = .error(reason)
+        }
     }
 
     // MARK: - Auth
@@ -124,6 +167,11 @@ final class WebSocketManager {
         webSocket?.send(.string(json)) { _ in }
     }
 
+    /// Send a raw JSON-serializable dictionary. Used by RemoteConfigService.
+    func sendRaw(_ dict: [String: Any]) {
+        sendJSON(dict)
+    }
+
     func sendPing() {
         let ping = ClientPingMessage(type: "ping", timestamp: ISO8601DateFormatter().string(from: Date()))
         guard let data = try? JSONEncoder().encode(ping),
@@ -157,6 +205,7 @@ final class WebSocketManager {
                         break
                     }
                 } catch {
+                    print("[WS] Receive error: \(error.localizedDescription)")
                     await MainActor.run {
                         self?.handleDisconnection()
                     }
@@ -171,8 +220,10 @@ final class WebSocketManager {
     private func handleServerMessage(_ msg: ServerMessage) {
         switch msg {
         case .authOk(let sessionId, let currentAgent, let availableAgents):
+            connectTimeoutTask?.cancel()
             connectionStatus = .connected
             reconnectAttempt = 0
+            DisconnectNotifier.shared.notifyReconnected()
             startHeartbeat()
             print("Authenticated, session: \(sessionId)")
             onAgentsUpdate?(availableAgents, currentAgent)
@@ -215,17 +266,30 @@ final class WebSocketManager {
     // MARK: - Reconnection
 
     private func handleDisconnection() {
-        guard connectionStatus.isConnected || {
-            if case .reconnecting = connectionStatus { return true }
-            return false
-        }() else { return }
+        // If we're still negotiating a candidate (not yet connected), failure
+        // here means try the next URL instead of entering reconnect loop.
+        if !connectionStatus.isConnected {
+            if case .reconnecting = connectionStatus {} else {
+                tryNextCandidateOrFail(reason: "Connection failed")
+                return
+            }
+        }
 
         heartbeatTask?.cancel()
+        // After a successful connection, restart from the first candidate so
+        // the next session prefers the primary URL again (network may have
+        // changed).
+        currentCandidateIndex = 0
         reconnectAttempt += 1
 
         if reconnectAttempt > Constants.reconnectMaxAttempts {
             connectionStatus = .error("Max reconnection attempts reached")
+            DisconnectNotifier.shared.notifyDisconnected(reason: "Se perdió la conexión con el Mac.")
             return
+        }
+
+        if reconnectAttempt == 1 {
+            DisconnectNotifier.shared.notifyDisconnected(reason: "Intentando reconectar con el Mac…")
         }
 
         connectionStatus = .reconnecting(attempt: reconnectAttempt)
@@ -242,6 +306,7 @@ final class WebSocketManager {
     func disconnect() {
         heartbeatTask?.cancel()
         receiveTask?.cancel()
+        connectTimeoutTask?.cancel()
         webSocket?.cancel(with: .normalClosure, reason: nil)
         webSocket = nil
         connectionStatus = .disconnected

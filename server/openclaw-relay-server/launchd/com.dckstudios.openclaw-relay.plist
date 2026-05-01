@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  LaunchAgent for the OpenClaw relay server.
+
+  Install:
+    cp launchd/com.dckstudios.openclaw-relay.plist \
+       ~/Library/LaunchAgents/com.dckstudios.openclaw-relay.plist
+    launchctl load ~/Library/LaunchAgents/com.dckstudios.openclaw-relay.plist
+
+  Unload:
+    launchctl unload ~/Library/LaunchAgents/com.dckstudios.openclaw-relay.plist
+
+  Logs:
+    tail -f /tmp/openclaw-relay.out.log
+    tail -f /tmp/openclaw-relay.err.log
+
+  Edit the absolute paths below to match your system (Node binary, repo
+  location) before loading.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.dckstudios.openclaw-relay</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/node</string>
+        <string>/Users/CHANGE_ME/repositorio/xavi9jarvis/server/openclaw-relay-server/src/index.js</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/CHANGE_ME/repositorio/xavi9jarvis/server/openclaw-relay-server</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
+        <key>OPENCLAW_RELAY_PORT</key>
+        <string>8765</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/openclaw-relay.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/openclaw-relay.err.log</string>
+</dict>
+</plist>

@@ -67,6 +67,9 @@ enum ServerMessage {
     case pong(timestamp: String)
     case agentsList(agents: [Agent], currentAgentId: String?)
     case agentSwitched(success: Bool, agent: Agent?, error: String?)
+    case configData(requestId: String?, section: String, data: Data)
+    case configResult(requestId: String?, success: Bool, message: String, raw: Data)
+    case logEntry(entry: LogEntry)
     case unknown(type: String)
 
     static func parse(from data: Data) -> ServerMessage? {
@@ -147,6 +150,31 @@ enum ServerMessage {
                 agent = parseAgent(from: agentDict)
             }
             return .agentSwitched(success: success, agent: agent, error: error)
+
+        case "config_data":
+            let requestId = json["request_id"] as? String
+            let payload = json["payload"] as? [String: Any] ?? [:]
+            let section = payload["section"] as? String ?? "unknown"
+            let dataPayload = payload["data"] ?? [:]
+            let dataBytes = (try? JSONSerialization.data(withJSONObject: dataPayload)) ?? Data()
+            return .configData(requestId: requestId, section: section, data: dataBytes)
+
+        case "config_result":
+            let requestId = json["request_id"] as? String
+            let payload = json["payload"] as? [String: Any] ?? [:]
+            let success = payload["success"] as? Bool ?? false
+            let message = payload["message"] as? String ?? ""
+            return .configResult(requestId: requestId, success: success, message: message, raw: data)
+
+        case "log_entry":
+            let payload = json["payload"] as? [String: Any] ?? [:]
+            let entry = LogEntry(
+                level: payload["level"] as? String ?? "info",
+                source: payload["source"] as? String ?? "relay",
+                message: payload["message"] as? String ?? "",
+                timestamp: payload["timestamp"] as? String ?? ""
+            )
+            return .logEntry(entry: entry)
 
         default:
             return .unknown(type: type)

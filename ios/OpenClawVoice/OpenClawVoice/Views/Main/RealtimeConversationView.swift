@@ -165,9 +165,15 @@ struct RealtimeConversationView: View {
                 .fill(stateColor)
                 .frame(width: 120, height: 120)
                 .overlay {
-                    Image(systemName: stateIcon)
-                        .font(.system(size: 48))
-                        .foregroundStyle(.white)
+                    if case .listening = service.state {
+                        WaveformView(level: nil, color: .white, barCount: 9, minHeight: 6, maxHeight: 52)
+                    } else if case .agentSpeaking = service.state {
+                        WaveformView(level: nil, color: .white, barCount: 9, minHeight: 6, maxHeight: 52)
+                    } else {
+                        Image(systemName: stateIcon)
+                            .font(.system(size: 48))
+                            .foregroundStyle(.white)
+                    }
                 }
         }
     }

@@ -2,6 +2,7 @@ import Foundation
 import CarPlay
 import AVFoundation
 
+@MainActor
 final class CarPlayVoiceController {
     private let speechRecognizer: SpeechRecognizer
     private let elevenLabs: ElevenLabsService
@@ -19,6 +20,11 @@ final class CarPlayVoiceController {
         didSet { updateCarPlayState() }
     }
 
+    private var responseBuffer: String = ""
+    private var responseFinal: Bool = false
+    private var activeCommandId: String?
+    private var previousMessageHandler: ((ServerMessage) -> Void)?
+
     init(appState: AppState, webSocket: WebSocketManager, speechRecognizer: SpeechRecognizer, elevenLabs: ElevenLabsService, audioPlayer: AudioPlayerService) {
         self.appState = appState
         self.webSocket = webSocket
@@ -27,49 +33,43 @@ final class CarPlayVoiceController {
         self.audioPlayer = audioPlayer
     }
 
-    // MARK: - Voice Interaction
+    // MARK: - Voice flow
 
     func startVoiceInteraction() async {
         state = .listening
         appState.isListening = true
 
         do {
-            // Configure audio for CarPlay
-            let session = AVAudioSession.sharedInstance()
-            // Use runtime-compatible bluetooth option across iOS SDK versions.
-            var options: AVAudioSession.CategoryOptions = [.allowBluetoothA2DP, .defaultToSpeaker]
-            #if swift(>=6.0)
-            if #available(iOS 18.2, *) {
-                options.insert(.allowBluetoothHFP)
-            } else {
-                options.insert(.allowBluetooth)
-            }
-            #else
-            options.insert(.allowBluetooth)
-            #endif
-            try session.setCategory(.playAndRecord, mode: .voiceChat, options: options)
-            try session.setActive(true)
-
-            // Start listening
+            try configureCarPlayAudioSession()
             try speechRecognizer.startListening()
 
-            // Wait for final transcription (with timeout)
             let text = await waitForTranscription(timeout: 10)
             speechRecognizer.stopListening()
             appState.isListening = false
 
-            guard !text.isEmpty else {
+            guard !text.trimmingCharacters(in: .whitespaces).isEmpty else {
                 state = .idle
                 return
             }
 
-            // Send command
+            // Append the captured WS handler so we don't clobber chat handler.
+            previousMessageHandler = webSocket.onMessage
+            webSocket.onMessage = { [weak self] msg in
+                self?.previousMessageHandler?(msg)
+                self?.handleResponse(msg)
+            }
+
             state = .processing
             appState.isProcessing = true
-            let commandId = webSocket.sendCommand(text: text, source: "voice", language: appState.speechLocale)
+            responseBuffer = ""
+            responseFinal = false
+            activeCommandId = webSocket.sendCommand(text: text, source: "voice", language: appState.speechLocale)
 
-            // Wait for response
-            let response = await waitForResponse(commandId: commandId, timeout: 60)
+            let response = await waitForResponse(timeout: 60)
+
+            // Restore previous handler.
+            webSocket.onMessage = previousMessageHandler
+            previousMessageHandler = nil
             appState.isProcessing = false
 
             guard !response.isEmpty else {
@@ -77,28 +77,26 @@ final class CarPlayVoiceController {
                 return
             }
 
-            // Speak response
             state = .speaking
             appState.isSpeaking = true
 
-            let config = ElevenLabsService.VoiceConfig(
+            let cfg = ElevenLabsService.VoiceConfig(
                 voiceId: appState.selectedVoiceId,
                 modelId: appState.selectedModelId
             )
+            let audio = try await elevenLabs.synthesize(text: response, config: cfg)
+            try audioPlayer.play(data: audio)
 
-            let audioData = try await elevenLabs.synthesize(text: response, config: config)
-            try audioPlayer.play(data: audioData)
-
-            // Wait for audio playback to finish
             while audioPlayer.isPlaying {
                 try await Task.sleep(for: .milliseconds(200))
             }
 
             appState.isSpeaking = false
             state = .idle
-
         } catch {
-            print("CarPlay voice error: \(error)")
+            print("[CarPlay] voice error: \(error)")
+            speechRecognizer.stopListening()
+            audioPlayer.stop()
             appState.isListening = false
             appState.isProcessing = false
             appState.isSpeaking = false
@@ -107,6 +105,18 @@ final class CarPlayVoiceController {
     }
 
     // MARK: - Helpers
+
+    private func configureCarPlayAudioSession() throws {
+        let session = AVAudioSession.sharedInstance()
+        var options: AVAudioSession.CategoryOptions = [.allowBluetoothA2DP, .defaultToSpeaker]
+        if #available(iOS 18.2, *) {
+            options.insert(.allowBluetoothHFP)
+        } else {
+            options.insert(.allowBluetooth)
+        }
+        try session.setCategory(.playAndRecord, mode: .voiceChat, options: options)
+        try session.setActive(true)
+    }
 
     private func waitForTranscription(timeout: TimeInterval) async -> String {
         let deadline = Date().addingTimeInterval(timeout)
@@ -119,32 +129,27 @@ final class CarPlayVoiceController {
         return speechRecognizer.transcription
     }
 
-    private func waitForResponse(commandId: String, timeout: TimeInterval) async -> String {
-        var responseText = ""
-        let deadline = Date().addingTimeInterval(timeout)
-
-        webSocket.onMessage = { msg in
-            switch msg {
-            case .responseChunk(let id, _, let text, _) where id == commandId:
-                responseText += (responseText.isEmpty ? "" : " ") + text
-            case .responseEnd(let id, _, let fullText, _) where id == commandId:
-                responseText = fullText
-            default:
-                break
-            }
+    private func handleResponse(_ msg: ServerMessage) {
+        switch msg {
+        case .responseChunk(let id, _, let text, _) where id == activeCommandId:
+            responseBuffer += (responseBuffer.isEmpty ? "" : " ") + text
+        case .responseEnd(let id, _, let fullText, _) where id == activeCommandId:
+            responseBuffer = fullText
+            responseFinal = true
+        case .error(_, let message, let cmd) where cmd == activeCommandId:
+            responseBuffer = "Error: \(message)"
+            responseFinal = true
+        default:
+            break
         }
+    }
 
-        while Date() < deadline {
-            // Check if we got a complete response
-            if !responseText.isEmpty {
-                // Small delay to see if more chunks come
-                try? await Task.sleep(for: .milliseconds(500))
-                break
-            }
+    private func waitForResponse(timeout: TimeInterval) async -> String {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline, !responseFinal {
             try? await Task.sleep(for: .milliseconds(100))
         }
-
-        return responseText
+        return responseBuffer
     }
 
     private func updateCarPlayState() {

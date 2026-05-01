@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     let appState: AppState
     let webSocket: WebSocketManager
+    let configService: RemoteConfigService
 
     @State private var elevenLabsKey: String = ""
     @State private var showKey = false
@@ -26,6 +27,40 @@ struct SettingsView: View {
                     }
                 } header: {
                     Text("Active Agent")
+                }
+
+                // Remote configuration (relay-side)
+                Section("Mac (remoto)") {
+                    NavigationLink {
+                        SystemStatusView(configService: configService)
+                    } label: {
+                        Label("Sistema", systemImage: "cpu")
+                    }
+                    NavigationLink {
+                        OpenClawConfigView(configService: configService)
+                    } label: {
+                        Label("OpenClaw", systemImage: "brain")
+                    }
+                    NavigationLink {
+                        MCPManagementView(configService: configService)
+                    } label: {
+                        Label("MCPs", systemImage: "puzzlepiece.extension")
+                    }
+                    NavigationLink {
+                        LogViewerView(configService: configService)
+                    } label: {
+                        Label("Logs", systemImage: "doc.text.magnifyingglass")
+                    }
+                    NavigationLink {
+                        RelayConfigView(configService: configService)
+                    } label: {
+                        Label("Relay Server", systemImage: "server.rack")
+                    }
+                    NavigationLink {
+                        SecurityView(configService: configService)
+                    } label: {
+                        Label("Seguridad (PIN)", systemImage: configService.pinIsSet ? "lock.fill" : "lock.open")
+                    }
                 }
 
                 // Connection section
@@ -56,7 +91,11 @@ struct SettingsView: View {
                         }
                     } else {
                         Button("Reconnect") {
-                            webSocket.connect(to: appState.serverURL, token: appState.authToken)
+                            webSocket.connect(
+                                to: appState.serverURL,
+                                token: appState.authToken,
+                                fallback: appState.fallbackURL
+                            )
                         }
                     }
                 }
