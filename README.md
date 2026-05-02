@@ -165,6 +165,7 @@ Any CLI assistant that reads from stdin and writes to stdout will work.
 | [`docs/REMOTE-CONFIG.md`](openclaw-voice-app/docs/REMOTE-CONFIG.md) | Remote OpenClaw configuration |
 | [`docs/SETUP.md`](openclaw-voice-app/docs/SETUP.md) | Setup and deployment guide |
 | [`docs/TAILSCALE.md`](openclaw-voice-app/docs/TAILSCALE.md) | Remote access over Tailscale (LAN + VPN fallback) |
+| [`docs/CUSTOM-LLM.md`](openclaw-voice-app/docs/CUSTOM-LLM.md) | Wire ElevenLabs Realtime agent to your OpenClaw via Tailscale Funnel |
 | [`specs/ROADMAP.md`](openclaw-voice-app/specs/ROADMAP.md) | Development roadmap and sprints |
 
 ## Development Roadmap
