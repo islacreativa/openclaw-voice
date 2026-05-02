@@ -4,11 +4,16 @@ import Observation
 
 /// Real-time conversational AI via ElevenLabs Agents.
 /// Opens a WebSocket to wss://api.elevenlabs.io/v1/convai/conversation,
-/// streams microphone audio (PCM 16kHz mono) to the agent, and plays
-/// back the agent's audio responses as they arrive.
+/// streams microphone audio (PCM 16-bit, sample rate negotiated with the
+/// agent) to the agent, and plays back the agent's audio responses as they
+/// arrive.
 ///
 /// Supports both public agents (agent_id in query) and private agents
-/// (requires signed URL from /v1/convai/conversation/get-signed-url).
+/// (requires `xi-api-key` header).
+///
+/// The agent's `agent_output_audio_format` is parsed from the
+/// `conversation_initiation_metadata` event so playback uses the same rate
+/// as the TTS (otherwise audio sounds "chipmunked" or low-pitched).
 @Observable
 final class ElevenLabsConversationalService: NSObject {
     private(set) var state: State = .idle
@@ -20,9 +25,14 @@ final class ElevenLabsConversationalService: NSObject {
     private var session: URLSession?
     private let audioEngine = AVAudioEngine()
     private let playerNode = AVAudioPlayerNode()
-    private var audioFormat: AVAudioFormat?
+    private var inputConverter: AVAudioConverter?
+    private var inputTargetFormat: AVAudioFormat?
     private var playbackFormat: AVAudioFormat?
     private var conversationId: String?
+    private var inputSampleRate: Double = 16_000
+    private var outputSampleRate: Double = 16_000
+    private var pendingAudioChunks: [Data] = []
+    private var hasPlaybackChain = false
 
     enum State: Equatable {
         case idle
@@ -41,11 +51,14 @@ final class ElevenLabsConversationalService: NSObject {
             return
         }
 
-        await MainActor.run { self.state = .connecting }
+        await MainActor.run {
+            self.state = .connecting
+            self.lastError = nil
+            self.userTranscript = ""
+            self.agentResponse = ""
+            self.pendingAudioChunks.removeAll()
+        }
 
-        // For private agents we'd first fetch a signed URL. Try direct
-        // connection first (works for public agents); if it fails the error
-        // handling below will surface a clear message.
         let urlString = "wss://api.elevenlabs.io/v1/convai/conversation?agent_id=\(agentId)"
         guard let url = URL(string: urlString) else {
             await MainActor.run { self.state = .error("Invalid agent URL") }
@@ -55,12 +68,14 @@ final class ElevenLabsConversationalService: NSObject {
         var request = URLRequest(url: url)
         request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
 
-        let config = URLSessionConfiguration.default
-        session = URLSession(configuration: config, delegate: self, delegateQueue: OperationQueue())
+        let cfg = URLSessionConfiguration.default
+        session = URLSession(configuration: cfg, delegate: self, delegateQueue: OperationQueue())
         webSocket = session?.webSocketTask(with: request)
         webSocket?.resume()
 
-        // Send initial config
+        // Send initial config — leaving overrides empty lets the agent's
+        // configured TTS / LLM / output format apply. The actual formats
+        // come back to us in `conversation_initiation_metadata`.
         let initMessage: [String: Any] = [
             "type": "conversation_initiation_client_data"
         ]
@@ -71,15 +86,6 @@ final class ElevenLabsConversationalService: NSObject {
 
         startReceiving()
         await MainActor.run { self.state = .connected }
-
-        do {
-            try startAudioCapture()
-        } catch {
-            await MainActor.run {
-                self.lastError = "Audio capture failed: \(error.localizedDescription)"
-                self.state = .error(error.localizedDescription)
-            }
-        }
     }
 
     func stop() {
@@ -88,19 +94,19 @@ final class ElevenLabsConversationalService: NSObject {
         webSocket = nil
         session?.invalidateAndCancel()
         session = nil
+        hasPlaybackChain = false
         state = .idle
     }
 
     // MARK: - Audio capture (microphone → server)
 
-    private func startAudioCapture() throws {
+    /// Start capture once we know the target sample rate (from metadata) so
+    /// the converter and the player chain match the agent's expectations.
+    private func startAudioCaptureAndPlayback() throws {
         let session = AVAudioSession.sharedInstance()
-        // Voice chat mode enables hardware echo cancellation (AEC) which is
-        // critical for real-time conversations. We deliberately do NOT use
-        // .defaultToSpeaker — routing to the loudspeaker breaks AEC and causes
-        // the mic to pick up the agent's own voice, triggering infinite
-        // interruption loops. Users can plug in headphones or AirPods for
-        // best results; the receiver (earpiece) is used otherwise.
+        // voiceChat enables hardware AEC. Avoid defaultToSpeaker — routing to
+        // the loudspeaker breaks AEC and the mic picks up the agent's own
+        // voice. Earpiece / headphones / Bluetooth give the cleanest loop.
         try session.setCategory(
             .playAndRecord,
             mode: .voiceChat,
@@ -109,9 +115,6 @@ final class ElevenLabsConversationalService: NSObject {
         try session.setActive(true, options: .notifyOthersOnDeactivation)
 
         let inputNode = audioEngine.inputNode
-
-        // Explicitly enable voice processing on the input node for software AEC
-        // in addition to the hardware AEC from voiceChat mode.
         do {
             try inputNode.setVoiceProcessingEnabled(true)
         } catch {
@@ -120,51 +123,85 @@ final class ElevenLabsConversationalService: NSObject {
 
         let inputFormat = inputNode.outputFormat(forBus: 0)
 
-        // Target format: PCM 16kHz mono (ElevenLabs expects 16-bit PCM @ 16kHz)
-        let targetSampleRate = 16000.0
-        guard let pcm16Format = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: targetSampleRate, channels: 1, interleaved: true) else {
-            throw NSError(domain: "ElevenLabs", code: 1, userInfo: [NSLocalizedDescriptionKey: "Could not create PCM format"])
+        guard let pcm16Format = AVAudioFormat(
+            commonFormat: .pcmFormatInt16,
+            sampleRate: inputSampleRate,
+            channels: 1,
+            interleaved: true
+        ) else {
+            throw NSError(domain: "ElevenLabs", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: "Could not create PCM format"])
         }
-        self.audioFormat = pcm16Format
+        self.inputTargetFormat = pcm16Format
 
         guard let converter = AVAudioConverter(from: inputFormat, to: pcm16Format) else {
-            throw NSError(domain: "ElevenLabs", code: 2, userInfo: [NSLocalizedDescriptionKey: "Could not create audio converter"])
+            throw NSError(domain: "ElevenLabs", code: 2,
+                          userInfo: [NSLocalizedDescriptionKey: "Could not create audio converter"])
+        }
+        self.inputConverter = converter
+
+        // Playback chain — set up with the agent's output sample rate so we
+        // don't pitch-shift its voice.
+        guard let pcm16Play = AVAudioFormat(
+            commonFormat: .pcmFormatInt16,
+            sampleRate: outputSampleRate,
+            channels: 1,
+            interleaved: true
+        ) else {
+            throw NSError(domain: "ElevenLabs", code: 3,
+                          userInfo: [NSLocalizedDescriptionKey: "Could not create playback format"])
+        }
+        self.playbackFormat = pcm16Play
+
+        if !hasPlaybackChain {
+            audioEngine.attach(playerNode)
+            audioEngine.connect(playerNode, to: audioEngine.mainMixerNode, format: pcm16Play)
+            hasPlaybackChain = true
         }
 
-        // Setup playback
-        audioEngine.attach(playerNode)
-        let pcm16PlayFormat = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16000, channels: 1, interleaved: true)!
-        self.playbackFormat = pcm16PlayFormat
-        audioEngine.connect(playerNode, to: audioEngine.mainMixerNode, format: pcm16PlayFormat)
-
-        inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self, converter, pcm16Format] buffer, _ in
-            self?.handleInputBuffer(buffer, converter: converter, targetFormat: pcm16Format)
+        inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self] buffer, _ in
+            self?.handleInputBuffer(buffer)
         }
 
         audioEngine.prepare()
         try audioEngine.start()
         playerNode.play()
 
+        // Drain any audio chunks that arrived before playback was ready.
+        for chunk in pendingAudioChunks {
+            playAudioChunk(chunk)
+        }
+        pendingAudioChunks.removeAll()
+
         Task { @MainActor in self.state = .listening }
+        print("[ElevenLabs] Audio chain ready — input \(Int(inputSampleRate))Hz / output \(Int(outputSampleRate))Hz")
     }
 
     private func stopAudioCapture() {
         audioEngine.inputNode.removeTap(onBus: 0)
         playerNode.stop()
         audioEngine.stop()
+        inputConverter = nil
     }
 
-    private func handleInputBuffer(_ buffer: AVAudioPCMBuffer, converter: AVAudioConverter, targetFormat: AVAudioFormat) {
-        // Gate the microphone while the agent is speaking. Even with AEC,
-        // aggressive feedback can happen on speakerphone / bad acoustics.
-        // The ElevenLabs VAD (server-side) will handle real interruptions
-        // via the "interruption" event when needed.
+    private func handleInputBuffer(_ buffer: AVAudioPCMBuffer) {
+        // Gate the mic while the agent is speaking. Even with AEC this
+        // prevents feedback in awkward acoustics. Real interruptions are
+        // signalled by ElevenLabs via the "interruption" event, after which
+        // we transition back to .listening and the gate opens again.
         if case .agentSpeaking = state {
             return
         }
 
-        let frameCapacity = AVAudioFrameCount(Double(buffer.frameLength) * targetFormat.sampleRate / buffer.format.sampleRate)
-        guard let outputBuffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: frameCapacity) else { return }
+        guard let converter = inputConverter, let targetFormat = inputTargetFormat else { return }
+
+        let frameCapacity = AVAudioFrameCount(
+            Double(buffer.frameLength) * targetFormat.sampleRate / buffer.format.sampleRate
+        )
+        guard frameCapacity > 0,
+              let outputBuffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: frameCapacity) else {
+            return
+        }
 
         var error: NSError?
         var inputConsumed = false
@@ -180,19 +217,15 @@ final class ElevenLabsConversationalService: NSObject {
 
         guard error == nil, outputBuffer.frameLength > 0 else { return }
 
-        // Get raw PCM data
-        let byteCount = Int(outputBuffer.frameLength) * 2 // int16 = 2 bytes
+        let byteCount = Int(outputBuffer.frameLength) * 2
         guard let channelData = outputBuffer.int16ChannelData?[0] else { return }
         let data = Data(bytes: channelData, count: byteCount)
-
         sendAudioChunk(data)
     }
 
     private func sendAudioChunk(_ data: Data) {
         let base64 = data.base64EncodedString()
-        let message: [String: Any] = [
-            "user_audio_chunk": base64
-        ]
+        let message: [String: Any] = ["user_audio_chunk": base64]
         if let json = try? JSONSerialization.data(withJSONObject: message),
            let str = String(data: json, encoding: .utf8) {
             webSocket?.send(.string(str)) { _ in }
@@ -210,14 +243,15 @@ final class ElevenLabsConversationalService: NSObject {
                     switch message {
                     case .string(let text):
                         if let data = text.data(using: .utf8) {
-                            self.handleServerMessage(data)
+                            await self.handleServerMessage(data)
                         }
                     case .data(let data):
-                        self.handleServerMessage(data)
+                        await self.handleServerMessage(data)
                     @unknown default:
                         break
                     }
                 } catch {
+                    print("[ElevenLabs] Receive error: \(error)")
                     await MainActor.run {
                         self.lastError = error.localizedDescription
                         self.state = .error(error.localizedDescription)
@@ -228,41 +262,47 @@ final class ElevenLabsConversationalService: NSObject {
         }
     }
 
+    @MainActor
     private func handleServerMessage(_ data: Data) {
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let type = json["type"] as? String else { return }
 
         switch type {
         case "conversation_initiation_metadata":
-            if let meta = json["conversation_initiation_metadata_event"] as? [String: Any],
-               let id = meta["conversation_id"] as? String {
-                conversationId = id
-                print("[ElevenLabs] Conversation started: \(id)")
-            }
+            handleInitiationMetadata(json)
 
         case "audio":
             if let audioEvent = json["audio_event"] as? [String: Any],
                let base64 = audioEvent["audio_base_64"] as? String,
                let data = Data(base64Encoded: base64) {
-                playAudioChunk(data)
-                Task { @MainActor in self.state = .agentSpeaking }
+                if hasPlaybackChain {
+                    playAudioChunk(data)
+                } else {
+                    pendingAudioChunks.append(data)
+                }
+                state = .agentSpeaking
                 scheduleReturnToListening()
             }
 
         case "user_transcript":
             if let event = json["user_transcription_event"] as? [String: Any],
                let transcript = event["user_transcript"] as? String {
-                Task { @MainActor in self.userTranscript = transcript }
+                userTranscript = transcript
             }
 
         case "agent_response":
             if let event = json["agent_response_event"] as? [String: Any],
                let response = event["agent_response"] as? String {
-                Task { @MainActor in self.agentResponse = response }
+                agentResponse = response
+            }
+
+        case "agent_response_correction":
+            if let event = json["agent_response_correction_event"] as? [String: Any],
+               let response = event["corrected_agent_response"] as? String {
+                agentResponse = response
             }
 
         case "ping":
-            // Respond with pong to keep connection alive
             if let pingEvent = json["ping_event"] as? [String: Any],
                let eventId = pingEvent["event_id"] as? Int {
                 let pong: [String: Any] = ["type": "pong", "event_id": eventId]
@@ -273,47 +313,85 @@ final class ElevenLabsConversationalService: NSObject {
             }
 
         case "interruption":
-            // Agent was interrupted; clear audio queue and return to listening
             playerNode.stop()
             playerNode.play()
-            Task { @MainActor in self.state = .listening }
+            state = .listening
+
+        case "internal_vad_score", "internal_turn_probability", "internal_tentative_agent_response":
+            break
 
         default:
-            break
+            print("[ElevenLabs] Unhandled message type: \(type)")
         }
     }
 
-    /// Timer used to transition back to .listening once the agent stops
-    /// sending audio chunks. ElevenLabs doesn't emit a clean "audio_end"
-    /// event, so we debounce on silence.
+    private func handleInitiationMetadata(_ json: [String: Any]) {
+        guard let meta = json["conversation_initiation_metadata_event"] as? [String: Any] else { return }
+        if let id = meta["conversation_id"] as? String {
+            conversationId = id
+        }
+        let userFmt = meta["user_input_audio_format"] as? String ?? "pcm_16000"
+        let agentFmt = meta["agent_output_audio_format"] as? String ?? "pcm_16000"
+        inputSampleRate = pcmSampleRate(from: userFmt) ?? 16_000
+        outputSampleRate = pcmSampleRate(from: agentFmt) ?? 16_000
+
+        print("[ElevenLabs] Conversation \(conversationId ?? "?") — input=\(userFmt), output=\(agentFmt)")
+
+        if !isPCM(agentFmt) {
+            lastError = "Formato no PCM (\(agentFmt)) no soportado. Configura el agente con un output PCM (16/22.05/24/44.1 kHz)."
+            print("[ElevenLabs] WARNING: \(lastError ?? "")")
+        }
+
+        do {
+            try startAudioCaptureAndPlayback()
+        } catch {
+            lastError = "Audio chain failed: \(error.localizedDescription)"
+            state = .error(error.localizedDescription)
+        }
+    }
+
+    private func pcmSampleRate(from format: String) -> Double? {
+        // "pcm_16000" → 16000, "pcm_24000" → 24000, etc.
+        guard format.hasPrefix("pcm_") else { return nil }
+        let n = format.dropFirst("pcm_".count)
+        return Double(n)
+    }
+
+    private func isPCM(_ format: String) -> Bool {
+        format.hasPrefix("pcm_")
+    }
+
+    /// Debounce return to .listening after the agent stops emitting audio.
+    /// ElevenLabs doesn't send a clean "audio_end" event so we rely on a
+    /// timeout since the last chunk.
     private var returnToListeningWorkItem: DispatchWorkItem?
 
     private func scheduleReturnToListening() {
         returnToListeningWorkItem?.cancel()
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
-            // Only transition if we're still in agentSpeaking state.
             if case .agentSpeaking = self.state {
                 self.state = .listening
             }
         }
         returnToListeningWorkItem = work
-        // 700ms of silence on the audio stream → assume turn ended.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7, execute: work)
+        // Allow longer silences between sentences before reopening the mic.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2, execute: work)
     }
 
     // MARK: - Audio playback
 
     private func playAudioChunk(_ data: Data) {
         guard let format = playbackFormat else { return }
-        let frameCount = AVAudioFrameCount(data.count / 2) // int16 = 2 bytes/sample
-        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else { return }
+        let frameCount = AVAudioFrameCount(data.count / 2)
+        guard frameCount > 0,
+              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else { return }
         buffer.frameLength = frameCount
 
         data.withUnsafeBytes { rawBuffer in
             if let src = rawBuffer.bindMemory(to: Int16.self).baseAddress,
                let dst = buffer.int16ChannelData?[0] {
-                dst.assign(from: src, count: Int(frameCount))
+                dst.update(from: src, count: Int(frameCount))
             }
         }
 
@@ -321,7 +399,7 @@ final class ElevenLabsConversationalService: NSObject {
     }
 }
 
-// MARK: - URLSessionDelegate (TLS; not strictly needed for ElevenLabs public API)
+// MARK: - URLSessionDelegate
 
 extension ElevenLabsConversationalService: URLSessionDelegate, URLSessionWebSocketDelegate {
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
@@ -329,7 +407,11 @@ extension ElevenLabsConversationalService: URLSessionDelegate, URLSessionWebSock
     }
 
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
-        print("[ElevenLabs] WebSocket closed: \(closeCode)")
-        Task { @MainActor in self.state = .idle }
+        let reasonStr = reason.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+        print("[ElevenLabs] WebSocket closed: \(closeCode.rawValue) \(reasonStr)")
+        Task { @MainActor in
+            if case .error = self.state { return }
+            self.state = .idle
+        }
     }
 }

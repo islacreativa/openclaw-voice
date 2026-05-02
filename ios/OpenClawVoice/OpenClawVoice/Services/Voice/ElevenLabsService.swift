@@ -7,12 +7,16 @@ final class ElevenLabsService {
 
     struct VoiceConfig {
         var voiceId: String = "pNInz6obpgDQGcFmaJgB"
-        var modelId: String = "eleven_multilingual_v2"
+        // eleven_turbo_v2_5 is the lowest-latency multilingual model — about
+        // half the time-to-first-audio of eleven_multilingual_v2.
+        var modelId: String = "eleven_turbo_v2_5"
         var stability: Double = 0.5
         var similarityBoost: Double = 0.75
         var style: Double = 0.0
         var useSpeakerBoost: Bool = true
-        var outputFormat: String = "mp3_44100_128"
+        // mp3_22050_32 keeps quality acceptable for speech and cuts download
+        // size ~4× vs mp3_44100_128, so first-byte arrives noticeably sooner.
+        var outputFormat: String = "mp3_22050_32"
     }
 
     init(apiKey: String) {
@@ -34,8 +38,12 @@ final class ElevenLabsService {
                         return
                     }
 
-                    let url = URL(string: "\(baseURL)/text-to-speech/\(config.voiceId)/stream")!
-                    var request = URLRequest(url: url)
+                    var components = URLComponents(string: "\(baseURL)/text-to-speech/\(config.voiceId)/stream")!
+                    components.queryItems = [
+                        URLQueryItem(name: "output_format", value: config.outputFormat),
+                        URLQueryItem(name: "optimize_streaming_latency", value: "3")
+                    ]
+                    var request = URLRequest(url: components.url!)
                     request.httpMethod = "POST"
                     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
                     request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
@@ -96,8 +104,11 @@ final class ElevenLabsService {
     func synthesize(text: String, config: VoiceConfig = VoiceConfig()) async throws -> Data {
         guard !apiKey.isEmpty else { throw ElevenLabsError.noAPIKey }
 
-        let url = URL(string: "\(baseURL)/text-to-speech/\(config.voiceId)")!
-        var request = URLRequest(url: url)
+        var components = URLComponents(string: "\(baseURL)/text-to-speech/\(config.voiceId)")!
+        components.queryItems = [
+            URLQueryItem(name: "output_format", value: config.outputFormat)
+        ]
+        var request = URLRequest(url: components.url!)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
