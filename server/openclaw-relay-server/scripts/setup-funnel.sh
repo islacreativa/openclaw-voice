@@ -72,10 +72,9 @@ cmd_status() {
 }
 
 cmd_off() {
-    echo "Disabling Funnel on port $FUNNEL_PORT…"
-    ts funnel --https=$FUNNEL_PORT off || true
-    echo "Removing serve config for port $FUNNEL_PORT…"
-    ts serve --https=$FUNNEL_PORT off || true
+    echo "Resetting Funnel + Serve config…"
+    ts funnel reset 2>&1 || true
+    ts serve reset 2>&1 || true
     echo "Done."
 }
 
@@ -97,15 +96,17 @@ EOF
         echo "    (continuing anyway — Funnel will just return 502 until it's up.)"
     fi
 
-    # 3. Configure Tailscale Serve to proxy https+insecure://localhost:RELAY_PORT
-    #    on the public Funnel port. https+insecure tells Tailscale to skip
-    #    cert verification on the loopback side (we use a self-signed cert).
-    echo "Configuring tailscale serve  $FUNNEL_PORT  →  https+insecure://localhost:$RELAY_PORT"
-    ts serve --bg --https=$FUNNEL_PORT "https+insecure://localhost:$RELAY_PORT"
+    # 3. Reset any prior Serve config so the new Funnel command can attach
+    #    cleanly to the loopback HTTPS backend.
+    ts serve reset >/dev/null 2>&1 || true
+    ts funnel reset >/dev/null 2>&1 || true
 
-    echo "Enabling Funnel on port $FUNNEL_PORT"
-    if ! ts funnel --bg --https=$FUNNEL_PORT on 2>&1 | tee /tmp/funnel.out; then
-        if grep -qi "funnel.*not.*allow\|disabled\|denied" /tmp/funnel.out 2>/dev/null; then
+    # 4. Combined `tailscale funnel <target>` (1.x+ syntax) sets up Serve and
+    #    Funnel in one go. https+insecure tells Tailscale to skip TLS
+    #    verification toward our self-signed loopback cert.
+    echo "Enabling Funnel  →  https+insecure://localhost:$RELAY_PORT"
+    if ! ts funnel --bg "https+insecure://localhost:$RELAY_PORT" 2>&1 | tee /tmp/funnel.out; then
+        if grep -qi "funnel.*not.*allow\|disabled\|denied\|funnel attribute" /tmp/funnel.out 2>/dev/null; then
             cat <<EOF >&2
 
 ✘ Tailscale rejected the Funnel request.
@@ -113,8 +114,7 @@ EOF
 Funnel must be enabled in your tailnet's admin console. Open:
   https://login.tailscale.com/admin/acls/file
 
-Make sure your policy file grants "funnel" to this device. The minimal
-addition looks like:
+Make sure your policy file grants "funnel" to this device:
 
   "nodeAttrs": [
     { "target": ["autogroup:member"], "attr": ["funnel"] }
@@ -130,7 +130,8 @@ EOF
 
     echo
     echo "── Funnel is up. Public URL & smoke tests ──────────────────"
-    public_url=$(ts funnel status 2>/dev/null | awk '/^https:\/\//{print $1; exit}')
+    # New syntax prints "Available on the internet:\n\nhttps://...\n"
+    public_url=$(ts funnel status 2>/dev/null | grep -oE 'https://[a-zA-Z0-9.-]+\.ts\.net' | head -1)
     if [[ -z "$public_url" ]]; then
         ts funnel status
         echo "(could not auto-detect URL; copy from above)"

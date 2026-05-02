@@ -36,6 +36,15 @@ export function attachHttpApi(httpsServer, { bridge, authToken, config }) {
             return;
         }
 
+        // /health is unauthenticated so external probes (Tailscale Funnel,
+        // load balancers, smoke-test scripts) can verify reachability
+        // without juggling tokens. It only reveals bridge readiness.
+        if (url.pathname === '/health' && req.method === 'GET') {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ status: 'ok', bridge: bridge.getStatus() }));
+            return;
+        }
+
         // Auth
         const auth = req.headers.authorization || '';
         const token = auth.replace(/^Bearer\s+/i, '');
@@ -53,12 +62,6 @@ export function attachHttpApi(httpsServer, { bridge, authToken, config }) {
 
             if (url.pathname === '/v1/models' && req.method === 'GET') {
                 handleListModels(res, config);
-                return;
-            }
-
-            if (url.pathname === '/health' && req.method === 'GET') {
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ status: 'ok', bridge: bridge.getStatus() }));
                 return;
             }
 
