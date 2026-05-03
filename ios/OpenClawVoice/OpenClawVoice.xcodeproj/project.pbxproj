@@ -48,6 +48,7 @@
 		A2FE75E9D51EB8D975445D17 /* PINGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBEFA62BDB6087896783F219 /* PINGateView.swift */; };
 		C181811C02EFA53AE0851018 /* SecurityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E418BF9CF673A2E8C2DD6013 /* SecurityView.swift */; };
 		30202F584F85A220476A35E3 /* CarPlayCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAC5DEC38952D9E27F73FFF4 /* CarPlayCoordinator.swift */; };
+		1DC597BE8B0BDC32531CBB4E /* AudioStreamPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E240A821401CD4A862F3981E /* AudioStreamPlayer.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -95,6 +96,7 @@
 		EBEFA62BDB6087896783F219 /* PINGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINGateView.swift; sourceTree = "<group>"; };
 		E418BF9CF673A2E8C2DD6013 /* SecurityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityView.swift; sourceTree = "<group>"; };
 		DAC5DEC38952D9E27F73FFF4 /* CarPlayCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlayCoordinator.swift; sourceTree = "<group>"; };
+		E240A821401CD4A862F3981E /* AudioStreamPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioStreamPlayer.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -274,6 +276,7 @@
 			isa = PBXGroup;
 			children = (
 				A013D283D7C774EA7604D8DC /* AudioPlayerService.swift */,
+				E240A821401CD4A862F3981E /* AudioStreamPlayer.swift */,
 				6F6644D80E05D0C546AF3895 /* ElevenLabsConversationalService.swift */,
 				BD3BC85C322A4F3B77DCF00C /* ElevenLabsService.swift */,
 				9902040F1ADAF28DEAE64BEB /* SpeechRecognizer.swift */,
@@ -362,6 +365,7 @@
 				AFEB4425471C0E7E67E07E9B /* AgentPickerView.swift in Sources */,
 				A61B3FF5A6DB0CA74082CDD1 /* AppState.swift in Sources */,
 				96D12CB32952C789326221A0 /* AudioPlayerService.swift in Sources */,
+				1DC597BE8B0BDC32531CBB4E /* AudioStreamPlayer.swift in Sources */,
 				30202F584F85A220476A35E3 /* CarPlayCoordinator.swift in Sources */,
 				BD66C323B467297EDB256694 /* CarPlaySceneDelegate.swift in Sources */,
 				EB21420AAB50501966CBBC99 /* CarPlayTemplateManager.swift in Sources */,

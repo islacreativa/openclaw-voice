@@ -1,18 +1,21 @@
 import Foundation
 import Observation
 
+@MainActor
 @Observable
 final class ChatViewModel {
     private let webSocket: WebSocketManager
     private let speechRecognizer: SpeechRecognizer
     private let elevenLabs: ElevenLabsService
     private let audioPlayer: AudioPlayerService
+    private let streamPlayer: AudioStreamPlayer
     private let appState: AppState
 
     var inputText: String = ""
     var messages: [ChatMessage] = []
     var isProcessing: Bool = false
     var currentCommandId: String?
+    private var ttsTask: Task<Void, Never>?
 
     init(appState: AppState, webSocket: WebSocketManager, speechRecognizer: SpeechRecognizer, elevenLabs: ElevenLabsService, audioPlayer: AudioPlayerService) {
         self.appState = appState
@@ -20,6 +23,7 @@ final class ChatViewModel {
         self.speechRecognizer = speechRecognizer
         self.elevenLabs = elevenLabs
         self.audioPlayer = audioPlayer
+        self.streamPlayer = AudioStreamPlayer()
 
         setupMessageHandler()
     }
@@ -119,25 +123,37 @@ final class ChatViewModel {
         guard !appState.elevenLabsAPIKey.isEmpty else { return }
 
         appState.isSpeaking = true
+        ttsTask?.cancel()
+
         let config = ElevenLabsService.VoiceConfig(
             voiceId: appState.selectedVoiceId,
             modelId: appState.selectedModelId
         )
+        let sampleRate = 22050
 
-        Task {
+        ttsTask = Task { @MainActor in
             do {
-                let audioData = try await elevenLabs.synthesize(text: text, config: config)
-                try audioPlayer.play(data: audioData)
-                // Wait for playback to finish
-                while audioPlayer.isPlaying {
+                try streamPlayer.startStream(sampleRate: Double(sampleRate))
+
+                let stream = elevenLabs.streamSpeechPCM(text: text, sampleRate: sampleRate, config: config)
+                for try await chunk in stream {
+                    if Task.isCancelled { break }
+                    streamPlayer.enqueue(chunk)
+                }
+                streamPlayer.finishStream()
+
+                // Wait for the queue to drain so the UI's "speaking" indicator
+                // stays up until audio actually ends.
+                while streamPlayer.isPlaying, !Task.isCancelled {
                     try await Task.sleep(for: .milliseconds(100))
                 }
+            } catch is CancellationError {
+                // Cancelled by user — nothing to clean up beyond stop().
             } catch {
-                print("TTS error: \(error)")
+                print("[TTS] Stream error: \(error)")
+                streamPlayer.stop()
             }
-            await MainActor.run {
-                appState.isSpeaking = false
-            }
+            appState.isSpeaking = false
         }
     }
 
@@ -145,7 +161,10 @@ final class ChatViewModel {
         if let commandId = currentCommandId {
             webSocket.sendCancel(commandId: commandId)
         }
+        ttsTask?.cancel()
+        ttsTask = nil
         audioPlayer.stop()
+        streamPlayer.stop()
         isProcessing = false
         appState.isProcessing = false
         appState.isSpeaking = false

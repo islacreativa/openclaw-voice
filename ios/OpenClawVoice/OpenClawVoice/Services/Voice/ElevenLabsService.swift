@@ -99,6 +99,77 @@ final class ElevenLabsService {
         }
     }
 
+    // MARK: - PCM streaming (lowest latency)
+
+    /// Streams 16-bit signed PCM audio from ElevenLabs as it's generated.
+    /// `sampleRate` should match `config.outputFormat` (e.g. 22050 for
+    /// `pcm_22050`). Yields raw PCM bytes ready to feed `AudioStreamPlayer`.
+    func streamSpeechPCM(text: String, sampleRate: Int = 22050, config: VoiceConfig = VoiceConfig()) -> AsyncThrowingStream<Data, Error> {
+        AsyncThrowingStream { continuation in
+            Task {
+                do {
+                    guard !apiKey.isEmpty else {
+                        continuation.finish(throwing: ElevenLabsError.noAPIKey)
+                        return
+                    }
+
+                    var components = URLComponents(string: "\(baseURL)/text-to-speech/\(config.voiceId)/stream")!
+                    components.queryItems = [
+                        URLQueryItem(name: "output_format", value: "pcm_\(sampleRate)"),
+                        URLQueryItem(name: "optimize_streaming_latency", value: "3")
+                    ]
+                    var request = URLRequest(url: components.url!)
+                    request.httpMethod = "POST"
+                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
+
+                    let body: [String: Any] = [
+                        "text": text,
+                        "model_id": config.modelId,
+                        "voice_settings": [
+                            "stability": config.stability,
+                            "similarity_boost": config.similarityBoost,
+                            "style": config.style,
+                            "use_speaker_boost": config.useSpeakerBoost
+                        ]
+                    ]
+                    request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+                    let (bytes, response) = try await URLSession.shared.bytes(for: request)
+
+                    guard let http = response as? HTTPURLResponse else {
+                        continuation.finish(throwing: ElevenLabsError.invalidResponse)
+                        return
+                    }
+                    if http.statusCode == 401 {
+                        continuation.finish(throwing: ElevenLabsError.invalidAPIKey)
+                        return
+                    }
+                    guard http.statusCode == 200 else {
+                        continuation.finish(throwing: ElevenLabsError.apiError(statusCode: http.statusCode))
+                        return
+                    }
+
+                    // Yield in modest-sized chunks so playback can start almost
+                    // immediately (the first ~50ms of PCM = ~2 KB at 22 kHz).
+                    var buffer = Data()
+                    let chunkBytes = 2048
+                    for try await byte in bytes {
+                        buffer.append(byte)
+                        if buffer.count >= chunkBytes {
+                            continuation.yield(buffer)
+                            buffer = Data()
+                        }
+                    }
+                    if !buffer.isEmpty { continuation.yield(buffer) }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
+
     // MARK: - Simple TTS (non-streaming, returns full audio)
 
     func synthesize(text: String, config: VoiceConfig = VoiceConfig()) async throws -> Data {
