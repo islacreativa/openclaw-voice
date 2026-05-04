@@ -50,6 +50,7 @@
 		30202F584F85A220476A35E3 /* CarPlayCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAC5DEC38952D9E27F73FFF4 /* CarPlayCoordinator.swift */; };
 		1DC597BE8B0BDC32531CBB4E /* AudioStreamPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E240A821401CD4A862F3981E /* AudioStreamPlayer.swift */; };
 		68056765445161FAED54F450 /* ChatHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D27EBBAB7A4E881B8CDA00D8 /* ChatHistoryStore.swift */; };
+		C8CDC057B7A570EF85AF8AC9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4428266EB782B3B361A4E5AE /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -99,6 +100,7 @@
 		DAC5DEC38952D9E27F73FFF4 /* CarPlayCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlayCoordinator.swift; sourceTree = "<group>"; };
 		E240A821401CD4A862F3981E /* AudioStreamPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioStreamPlayer.swift; sourceTree = "<group>"; };
 		D27EBBAB7A4E881B8CDA00D8 /* ChatHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatHistoryStore.swift; sourceTree = "<group>"; };
+		4428266EB782B3B361A4E5AE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -255,6 +257,7 @@
 		D0010E8C35A278819F23E5A9 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				4428266EB782B3B361A4E5AE /* Assets.xcassets */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -322,6 +325,7 @@
 			buildConfigurationList = F1A3437367DEC73C1CC9C585 /* Build configuration list for PBXNativeTarget "OpenClawVoice" */;
 			buildPhases = (
 				69C0D3EAAD11859573EAC016 /* Sources */,
+				2F400D5DC17226A7C62E5D26 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -420,6 +424,17 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXResourcesBuildPhase section */
+		2F400D5DC17226A7C62E5D26 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C8CDC057B7A570EF85AF8AC9 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin XCBuildConfiguration section */
 		1EBE169BE4E1770B90315E9F /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -482,7 +497,7 @@
 		85D9AA98B35E1C1B7FA14963 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = OpenClawVoice/OpenClawVoice.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
@@ -567,7 +582,7 @@
 		F2722038EAC52402FC60338C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = OpenClawVoice/OpenClawVoice.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
