@@ -2,7 +2,6 @@ import { EventEmitter } from 'events';
 import { existsSync, readFileSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
-import { OpenClawAdapter } from './adapters/openclaw-adapter.js';
 import { StdioAdapter } from './adapters/stdio-adapter.js';
 import { GatewayAdapter } from './adapters/gateway-adapter.js';
 import { logger } from '../utils/logger.js';
@@ -14,13 +13,15 @@ import { logger } from '../utils/logger.js';
  * is in use.
  *
  * Adapter selection (in order):
- *   - 'gateway'   — explicit `agent.type: 'gateway'` or auto-detected when
- *                   `~/.openclaw/openclaw.json` exists with a gateway token
- *                   (no spawn per turn — persistent WebSocket to the daemon)
- *   - 'openclaw'  — invokes `openclaw agent --message "..." --json` (cold
- *                   spawn per turn; fallback when gateway isn't available)
- *   - 'nemoclaw'  — same pattern, different command
- *   - 'stdio'     — generic stdin/stdout REPL (default for unknown types)
+ *   - 'gateway' — for OpenClaw / NemoClaw agents when the daemon is
+ *                 reachable (auto-detected via `~/.openclaw/openclaw.json`).
+ *                 Persistent WebSocket; no spawn per turn.
+ *   - 'stdio'   — generic stdin/stdout REPL (default for unknown types).
+ *
+ * Note: the older per-command CLI adapter was removed in favor of the
+ * gateway path. The CLI invocation `openclaw agent --message ...` is itself
+ * a thin RPC client to the same daemon, so the spawn cost was pure
+ * overhead with no functional difference.
  */
 export class AgentBridge extends EventEmitter {
     constructor(config) {
@@ -59,9 +60,6 @@ export class AgentBridge extends EventEmitter {
         switch (type) {
             case 'gateway':
                 return new GatewayAdapter(agent);
-            case 'openclaw':
-            case 'nemoclaw':
-                return new OpenClawAdapter(agent);
             case 'stdio':
             default:
                 return new StdioAdapter(agent);
@@ -117,15 +115,9 @@ export class AgentBridge extends EventEmitter {
 
 function inferAdapterType(agent) {
     const cmd = (agent.command || '').toLowerCase();
-    if (cmd === 'openclaw' || cmd.endsWith('/openclaw')) {
-        // Prefer the persistent WebSocket gateway when its config exists.
-        // Drops cold-spawn latency from ~1-2s/turn to handshake-only.
-        if (gatewayAvailable()) return 'gateway';
-        return 'openclaw';
-    }
-    if (cmd === 'nemoclaw' || cmd.endsWith('/nemoclaw')) {
-        if (gatewayAvailable()) return 'gateway';
-        return 'nemoclaw';
+    if ((cmd === 'openclaw' || cmd.endsWith('/openclaw') ||
+         cmd === 'nemoclaw' || cmd.endsWith('/nemoclaw')) && gatewayAvailable()) {
+        return 'gateway';
     }
     return 'stdio';
 }

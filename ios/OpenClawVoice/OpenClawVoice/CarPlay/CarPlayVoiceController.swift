@@ -133,7 +133,7 @@ final class CarPlayVoiceController {
         switch msg {
         case .responseChunk(let id, _, let text, _) where id == activeCommandId:
             responseBuffer += (responseBuffer.isEmpty ? "" : " ") + text
-        case .responseEnd(let id, _, let fullText, _) where id == activeCommandId:
+        case .responseEnd(let id, _, let fullText, _, _, _) where id == activeCommandId:
             responseBuffer = fullText
             responseFinal = true
         case .error(_, let message, let cmd) where cmd == activeCommandId:

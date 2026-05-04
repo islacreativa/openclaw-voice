@@ -49,6 +49,7 @@
 		C181811C02EFA53AE0851018 /* SecurityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E418BF9CF673A2E8C2DD6013 /* SecurityView.swift */; };
 		30202F584F85A220476A35E3 /* CarPlayCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAC5DEC38952D9E27F73FFF4 /* CarPlayCoordinator.swift */; };
 		1DC597BE8B0BDC32531CBB4E /* AudioStreamPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E240A821401CD4A862F3981E /* AudioStreamPlayer.swift */; };
+		68056765445161FAED54F450 /* ChatHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D27EBBAB7A4E881B8CDA00D8 /* ChatHistoryStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -97,6 +98,7 @@
 		E418BF9CF673A2E8C2DD6013 /* SecurityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityView.swift; sourceTree = "<group>"; };
 		DAC5DEC38952D9E27F73FFF4 /* CarPlayCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlayCoordinator.swift; sourceTree = "<group>"; };
 		E240A821401CD4A862F3981E /* AudioStreamPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioStreamPlayer.swift; sourceTree = "<group>"; };
+		D27EBBAB7A4E881B8CDA00D8 /* ChatHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatHistoryStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -171,10 +173,19 @@
 				82E7F5A93D5BEDDE058323A4 /* Network */,
 				FC9EB9E0A445B3D1700D2D84 /* Notifications */,
 				F4DE3F6C198F939082B1CC77 /* Security */,
+				DB5EB458196CDB432E2DE861 /* Storage */,
 				FABCF2257698C4C5F9B154D5 /* Voice */,
 				DB0945CAB1B16CCDD443E246 /* WebSocket */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		DB5EB458196CDB432E2DE861 /* Storage */ = {
+			isa = PBXGroup;
+			children = (
+				D27EBBAB7A4E881B8CDA00D8 /* ChatHistoryStore.swift */,
+			);
+			path = Storage;
 			sourceTree = "<group>";
 		};
 		82E7F5A93D5BEDDE058323A4 /* Network */ = {
@@ -370,6 +381,7 @@
 				BD66C323B467297EDB256694 /* CarPlaySceneDelegate.swift in Sources */,
 				EB21420AAB50501966CBBC99 /* CarPlayTemplateManager.swift in Sources */,
 				6AB5156C45ED5B2F350036F8 /* CarPlayVoiceController.swift in Sources */,
+				68056765445161FAED54F450 /* ChatHistoryStore.swift in Sources */,
 				B8BE0801FA3CCC48EBAF70E0 /* ChatMessage.swift in Sources */,
 				DA1306753C7C8067172CB06A /* ChatView.swift in Sources */,
 				5C1D1A66B48E10F5958972F6 /* ChatViewModel.swift in Sources */,

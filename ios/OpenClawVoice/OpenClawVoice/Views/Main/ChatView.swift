@@ -91,6 +91,19 @@ struct ChatView: View {
             .navigationTitle("OpenClaw Voice")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    if !viewModel.messages.isEmpty {
+                        Menu {
+                            Button(role: .destructive) {
+                                viewModel.clearHistory()
+                            } label: {
+                                Label("Borrar historial", systemImage: "trash")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                        }
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Circle()
                         .fill(appState.connectionStatus.isConnected ? .green : .red)

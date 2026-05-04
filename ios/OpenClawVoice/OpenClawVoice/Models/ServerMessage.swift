@@ -61,7 +61,7 @@ enum ServerMessage {
     case authError(code: String, message: String)
     case responseStart(commandId: String, responseId: String)
     case responseChunk(commandId: String, responseId: String, text: String, chunkIndex: Int)
-    case responseEnd(commandId: String, responseId: String, fullText: String, processingTimeMs: Int?)
+    case responseEnd(commandId: String, responseId: String, fullText: String, processingTimeMs: Int?, timeToFirstChunkMs: Int?, transport: String?)
     case status(openclawStatus: String)
     case error(code: String, message: String, commandId: String?)
     case pong(timestamp: String)
@@ -118,7 +118,10 @@ enum ServerMessage {
             let fullText = payload?["full_text"] as? String ?? ""
             let metadata = payload?["metadata"] as? [String: Any]
             let processingTime = metadata?["processing_time_ms"] as? Int
-            return .responseEnd(commandId: commandId, responseId: responseId, fullText: fullText, processingTimeMs: processingTime)
+            let ttfb = metadata?["time_to_first_chunk_ms"] as? Int
+            let transport = metadata?["transport"] as? String
+            return .responseEnd(commandId: commandId, responseId: responseId, fullText: fullText,
+                                processingTimeMs: processingTime, timeToFirstChunkMs: ttfb, transport: transport)
 
         case "status":
             let status = json["openclaw_status"] as? String ?? "unknown"

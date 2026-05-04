@@ -16,6 +16,8 @@ final class ChatViewModel {
     var isProcessing: Bool = false
     var currentCommandId: String?
     private var ttsTask: Task<Void, Never>?
+    private var turnStartedAt: [String: Date] = [:]
+    private var ttsStartedAt: [String: Date] = [:]
 
     init(appState: AppState, webSocket: WebSocketManager, speechRecognizer: SpeechRecognizer, elevenLabs: ElevenLabsService, audioPlayer: AudioPlayerService) {
         self.appState = appState
@@ -24,8 +26,14 @@ final class ChatViewModel {
         self.elevenLabs = elevenLabs
         self.audioPlayer = audioPlayer
         self.streamPlayer = AudioStreamPlayer()
+        self.messages = ChatHistoryStore.shared.load()
 
         setupMessageHandler()
+    }
+
+    func clearHistory() {
+        messages.removeAll()
+        ChatHistoryStore.shared.clear()
     }
 
     private func setupMessageHandler() {
@@ -43,8 +51,10 @@ final class ChatViewModel {
         inputText = ""
         let commandId = webSocket.sendCommand(text: text)
         currentCommandId = commandId
+        turnStartedAt[commandId] = Date()
 
         messages.append(ChatMessage(id: commandId, role: .user, text: text))
+        ChatHistoryStore.shared.saveDebounced(messages)
         isProcessing = true
         appState.isProcessing = true
     }
@@ -69,8 +79,10 @@ final class ChatViewModel {
 
         let commandId = webSocket.sendCommand(text: text, source: "voice", language: appState.speechLocale)
         currentCommandId = commandId
+        turnStartedAt[commandId] = Date()
 
         messages.append(ChatMessage(id: commandId, role: .user, text: text))
+        ChatHistoryStore.shared.saveDebounced(messages)
         isProcessing = true
         appState.isProcessing = true
     }
@@ -78,6 +90,8 @@ final class ChatViewModel {
     // MARK: - Handle server messages
 
     private func handleServerMessage(_ msg: ServerMessage) {
+        defer { ChatHistoryStore.shared.saveDebounced(messages) }
+
         switch msg {
         case .responseStart(let commandId, _):
             // Create placeholder for assistant response
@@ -89,18 +103,22 @@ final class ChatViewModel {
                 messages[index].text += (messages[index].text.isEmpty ? "" : " ") + text
             }
 
-        case .responseEnd(let commandId, _, let fullText, _):
-            // Finalize message
+        case .responseEnd(let commandId, _, let fullText, let processingMs, let ttfbMs, let transport):
             if let index = messages.lastIndex(where: { $0.id == "resp-\(commandId)" }) {
                 messages[index].text = fullText
                 messages[index].isStreaming = false
+                messages[index].latency = ChatMessage.Latency(
+                    serverProcessingMs: processingMs,
+                    timeToFirstChunkMs: ttfbMs,
+                    timeToFirstAudioMs: nil,
+                    transport: transport
+                )
             }
             isProcessing = false
             appState.isProcessing = false
             currentCommandId = nil
 
-            // Speak the response
-            speakResponse(fullText)
+            speakResponse(fullText, commandId: commandId)
 
         case .error(let code, let message, _):
             messages.append(ChatMessage(role: .system, text: "Error [\(code)]: \(message)"))
@@ -119,7 +137,7 @@ final class ChatViewModel {
 
     // MARK: - TTS
 
-    private func speakResponse(_ text: String) {
+    private func speakResponse(_ text: String, commandId: String) {
         guard !appState.elevenLabsAPIKey.isEmpty else { return }
 
         appState.isSpeaking = true
@@ -130,15 +148,36 @@ final class ChatViewModel {
             modelId: appState.selectedModelId
         )
         let sampleRate = 22050
+        let turnStart = turnStartedAt[commandId]
+
+        // Split into "first sentence + remainder" so we can start TTS on the
+        // first sentence ASAP and synthesize the rest in parallel. For short
+        // replies (one sentence) this collapses to a single call; for longer
+        // ones we cut time-to-first-audio roughly in half on the tail.
+        let segments = splitForSpeech(text)
 
         ttsTask = Task { @MainActor in
             do {
                 try streamPlayer.startStream(sampleRate: Double(sampleRate))
 
-                let stream = elevenLabs.streamSpeechPCM(text: text, sampleRate: sampleRate, config: config)
-                for try await chunk in stream {
+                var firstAudioRecorded = false
+                for (segmentIndex, segment) in segments.enumerated() {
                     if Task.isCancelled { break }
-                    streamPlayer.enqueue(chunk)
+                    let stream = elevenLabs.streamSpeechPCM(text: segment, sampleRate: sampleRate, config: config)
+                    for try await chunk in stream {
+                        if Task.isCancelled { break }
+                        streamPlayer.enqueue(chunk)
+                        if !firstAudioRecorded && segmentIndex == 0 {
+                            firstAudioRecorded = true
+                            if let start = turnStart,
+                               let index = messages.lastIndex(where: { $0.id == "resp-\(commandId)" }) {
+                                let ms = Int(Date().timeIntervalSince(start) * 1000)
+                                var latency = messages[index].latency ?? ChatMessage.Latency()
+                                latency.timeToFirstAudioMs = ms
+                                messages[index].latency = latency
+                            }
+                        }
+                    }
                 }
                 streamPlayer.finishStream()
 
@@ -155,6 +194,43 @@ final class ChatViewModel {
             }
             appState.isSpeaking = false
         }
+    }
+
+    /// Cuts the text into 1-2 chunks: the first sentence (or first ~120
+    /// characters), and the rest. Keeps the first chunk small so the first
+    /// audio starts ASAP, while still respecting natural pauses.
+    private func splitForSpeech(_ text: String) -> [String] {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count > 60 else { return [trimmed] }
+
+        let punctuation: Set<Character> = [".", "!", "?", "…", "\n"]
+        let minHead = 24
+        let maxHead = 160
+        var head: String = ""
+        var tail: String = ""
+        var splitIndex: String.Index?
+
+        for index in trimmed.indices {
+            head.append(trimmed[index])
+            if head.count >= minHead, punctuation.contains(trimmed[index]) {
+                splitIndex = trimmed.index(after: index)
+                break
+            }
+            if head.count >= maxHead {
+                splitIndex = trimmed.index(after: index)
+                break
+            }
+        }
+
+        guard let cut = splitIndex, cut < trimmed.endIndex else {
+            return [trimmed]
+        }
+        let headPart = String(trimmed[..<cut]).trimmingCharacters(in: .whitespaces)
+        let tailPart = String(trimmed[cut...]).trimmingCharacters(in: .whitespaces)
+        tail = tailPart
+        if headPart.isEmpty { return [trimmed] }
+        if tail.isEmpty { return [headPart] }
+        return [headPart, tail]
     }
 
     func cancelCommand() {

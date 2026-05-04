@@ -69,10 +69,12 @@ export class MessageHandler {
 
         const responseId = `resp-${commandId}`;
         const startTime = Date.now();
+        let firstChunkAt = null;
         let fullText = '';
 
         const onChunk = (data) => {
             if (data.commandId === commandId) {
+                if (firstChunkAt === null) firstChunkAt = Date.now();
                 fullText += data.text + ' ';
                 ws.send(JSON.stringify({
                     type: 'response_chunk',
@@ -85,7 +87,9 @@ export class MessageHandler {
 
         const onEnd = (data) => {
             if (data.commandId === commandId) {
-                const processingTime = Date.now() - startTime;
+                const endTime = Date.now();
+                const processingTime = endTime - startTime;
+                const ttfbMs = firstChunkAt !== null ? firstChunkAt - startTime : null;
                 session.addToHistory('assistant', fullText.trim(), commandId);
                 ws.send(JSON.stringify({
                     type: 'response_end',
@@ -93,7 +97,11 @@ export class MessageHandler {
                     response_id: responseId,
                     payload: {
                         full_text: fullText.trim(),
-                        metadata: { processing_time_ms: processingTime }
+                        metadata: {
+                            processing_time_ms: processingTime,
+                            time_to_first_chunk_ms: ttfbMs,
+                            transport: this.bridge.getStatus().transport || 'unknown'
+                        }
                     }
                 }));
                 cleanup();
