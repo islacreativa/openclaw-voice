@@ -90,12 +90,16 @@ final class AudioStreamPlayer {
     }
 
     func stop() {
+        // Order matters: stop the engine before touching node connections.
+        // disconnectNodeInput / detach throw an Obj-C NSException when the
+        // node was never attached, so guard with attachedNodes first.
+        let isAttached = engine.attachedNodes.contains(player)
         if engine.isRunning {
-            player.stop()
+            if isAttached { player.stop() }
             engine.stop()
         }
-        engine.disconnectNodeInput(player, bus: 0)
-        if engine.attachedNodes.contains(player) {
+        if isAttached {
+            engine.disconnectNodeInput(player, bus: 0)
             engine.detach(player)
         }
         pcmFormat = nil

@@ -46,8 +46,26 @@ final class ElevenLabsConversationalService: NSObject {
     // MARK: - Start / Stop
 
     func start(apiKey: String, agentId: String) async {
-        guard !apiKey.isEmpty, !agentId.isEmpty else {
-            await MainActor.run { self.state = .error("Missing API key or agent ID") }
+        let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedAgent = agentId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedKey.isEmpty, !trimmedAgent.isEmpty else {
+            await MainActor.run {
+                self.lastError = "Falta API key o Agent ID"
+                self.state = .error("Falta API key o Agent ID")
+            }
+            return
+        }
+
+        // 1) Microphone permission. Without it the audio engine starts but
+        //    inputNode delivers silent buffers, and ElevenLabs interprets
+        //    that as the user saying nothing — no replies. Surface the
+        //    real cause early.
+        let micGranted = await requestMicrophonePermission()
+        guard micGranted else {
+            await MainActor.run {
+                self.lastError = "Permiso de micrófono denegado — Ajustes → OpenClaw Voice → Micrófono"
+                self.state = .error("Permiso de micrófono denegado")
+            }
             return
         }
 
@@ -59,26 +77,21 @@ final class ElevenLabsConversationalService: NSObject {
             self.pendingAudioChunks.removeAll()
         }
 
-        let urlString = "wss://api.elevenlabs.io/v1/convai/conversation?agent_id=\(agentId)"
+        let urlString = "wss://api.elevenlabs.io/v1/convai/conversation?agent_id=\(trimmedAgent)"
         guard let url = URL(string: urlString) else {
             await MainActor.run { self.state = .error("Invalid agent URL") }
             return
         }
 
         var request = URLRequest(url: url)
-        request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
+        request.setValue(trimmedKey, forHTTPHeaderField: "xi-api-key")
 
         let cfg = URLSessionConfiguration.default
         session = URLSession(configuration: cfg, delegate: self, delegateQueue: OperationQueue())
         webSocket = session?.webSocketTask(with: request)
         webSocket?.resume()
 
-        // Send initial config — leaving overrides empty lets the agent's
-        // configured TTS / LLM / output format apply. The actual formats
-        // come back to us in `conversation_initiation_metadata`.
-        let initMessage: [String: Any] = [
-            "type": "conversation_initiation_client_data"
-        ]
+        let initMessage: [String: Any] = ["type": "conversation_initiation_client_data"]
         if let data = try? JSONSerialization.data(withJSONObject: initMessage),
            let json = String(data: data, encoding: .utf8) {
             webSocket?.send(.string(json)) { _ in }
@@ -86,6 +99,34 @@ final class ElevenLabsConversationalService: NSObject {
 
         startReceiving()
         await MainActor.run { self.state = .connected }
+
+        // 2) If we never receive conversation_initiation_metadata within 8s
+        //    something is wrong (bad agent ID, bad key, blocked by network)
+        //    — surface a clear error instead of leaving the UI silent.
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(8))
+            guard let self else { return }
+            await MainActor.run {
+                if !self.hasPlaybackChain, self.conversationId == nil {
+                    self.lastError = "No llegó conversation_initiation_metadata. Comprueba Agent ID, API key y que el agente exista."
+                    print("[ElevenLabs] \(self.lastError ?? "")")
+                    if case .error = self.state {} else {
+                        self.state = .error("Sin respuesta del agente")
+                    }
+                }
+            }
+        }
+    }
+
+    private func requestMicrophonePermission() async -> Bool {
+        let session = AVAudioSession.sharedInstance()
+        if #available(iOS 17.0, *) {
+            return await AVAudioApplication.requestRecordPermission()
+        } else {
+            return await withCheckedContinuation { (cont: CheckedContinuation<Bool, Never>) in
+                session.requestRecordPermission { cont.resume(returning: $0) }
+            }
+        }
     }
 
     func stop() {
