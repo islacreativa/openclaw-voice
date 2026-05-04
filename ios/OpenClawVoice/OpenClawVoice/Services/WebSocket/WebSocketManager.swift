@@ -22,14 +22,15 @@ final class WebSocketManager {
 
     func connect(to urlString: String, token: String, fallback: String? = nil) {
         var urls: [URL] = []
-        if let u = URL(string: urlString) { urls.append(u) }
-        if let fb = fallback?.trimmingCharacters(in: .whitespaces),
+        if let u = Self.normalizeWebSocketURL(urlString) { urls.append(u) }
+        if let fb = fallback?.trimmingCharacters(in: .whitespacesAndNewlines),
            !fb.isEmpty, fb != urlString,
-           let u = URL(string: fb) {
+           let u = Self.normalizeWebSocketURL(fb),
+           !urls.contains(u) {
             urls.append(u)
         }
         guard !urls.isEmpty else {
-            connectionStatus = .error("Invalid URL")
+            connectionStatus = .error("URL inválida — usa wss://host:8765/ws")
             return
         }
 
@@ -38,6 +39,48 @@ final class WebSocketManager {
         self.authToken = token
         self.reconnectAttempt = 0
         performConnect()
+    }
+
+    /// Coerces user-entered URLs into the form `URLSessionWebSocketTask`
+    /// accepts. The task throws an NSException (not a Swift error) when the
+    /// scheme isn't `ws`/`wss`, so we MUST normalize before calling it:
+    ///   - `https://host`        → `wss://host/ws`
+    ///   - `http://host`         → `ws://host/ws`
+    ///   - `host:8765/ws`        → `wss://host:8765/ws`
+    ///   - `host`                → `wss://host/ws`
+    /// Whitespace/newlines (common when pasted from QR readers or browsers)
+    /// are stripped first.
+    static func normalizeWebSocketURL(_ raw: String) -> URL? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        var working = trimmed
+        let lower = working.lowercased()
+        if lower.hasPrefix("https://") {
+            working = "wss://" + String(working.dropFirst("https://".count))
+        } else if lower.hasPrefix("http://") {
+            working = "ws://" + String(working.dropFirst("http://".count))
+        } else if !lower.hasPrefix("wss://") && !lower.hasPrefix("ws://") {
+            // No scheme — assume secure WS to a Funnel-style hostname.
+            working = "wss://" + working
+        }
+
+        // If no path, default to `/ws` (relay's WS endpoint).
+        if let url = URL(string: working),
+           (url.path.isEmpty || url.path == "/") {
+            let scheme = url.scheme ?? "wss"
+            let host = url.host ?? ""
+            let portPart = url.port.map { ":\($0)" } ?? ""
+            working = "\(scheme)://\(host)\(portPart)/ws"
+        }
+
+        guard let url = URL(string: working),
+              let scheme = url.scheme?.lowercased(),
+              scheme == "ws" || scheme == "wss",
+              url.host?.isEmpty == false else {
+            return nil
+        }
+        return url
     }
 
     private func performConnect() {
@@ -54,6 +97,17 @@ final class WebSocketManager {
         guard currentCandidateIndex < candidateURLs.count else { return }
         let url = candidateURLs[currentCandidateIndex]
         print("[WS] Connecting to \(url) (candidate \(currentCandidateIndex + 1)/\(candidateURLs.count))")
+
+        // Defensive: webSocketTask(with:) throws an Obj-C NSException (not
+        // a Swift error) for non-ws/wss URLs. normalizeWebSocketURL above
+        // should prevent this, but if a stale Keychain value sneaks past we
+        // surface an error rather than crashing the app.
+        guard let scheme = url.scheme?.lowercased(),
+              scheme == "ws" || scheme == "wss" else {
+            connectionStatus = .error("Esquema de URL no soportado: \(url.scheme ?? "?")")
+            return
+        }
+
         webSocket = session?.webSocketTask(with: url)
         webSocket?.resume()
 
