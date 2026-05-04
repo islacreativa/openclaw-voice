@@ -1,6 +1,10 @@
 import { EventEmitter } from 'events';
+import { existsSync, readFileSync } from 'fs';
+import { homedir } from 'os';
+import { join } from 'path';
 import { OpenClawAdapter } from './adapters/openclaw-adapter.js';
 import { StdioAdapter } from './adapters/stdio-adapter.js';
+import { GatewayAdapter } from './adapters/gateway-adapter.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -9,10 +13,14 @@ import { logger } from '../utils/logger.js';
  * server (message-handler, websocket-server) doesn't care which backend
  * is in use.
  *
- * Agent types:
- *   - 'openclaw' — invokes `openclaw agent --message "..." --json`
- *   - 'nemoclaw' — same pattern, different command
- *   - 'stdio'    — generic stdin/stdout REPL (default for unknown types)
+ * Adapter selection (in order):
+ *   - 'gateway'   — explicit `agent.type: 'gateway'` or auto-detected when
+ *                   `~/.openclaw/openclaw.json` exists with a gateway token
+ *                   (no spawn per turn — persistent WebSocket to the daemon)
+ *   - 'openclaw'  — invokes `openclaw agent --message "..." --json` (cold
+ *                   spawn per turn; fallback when gateway isn't available)
+ *   - 'nemoclaw'  — same pattern, different command
+ *   - 'stdio'     — generic stdin/stdout REPL (default for unknown types)
  */
 export class AgentBridge extends EventEmitter {
     constructor(config) {
@@ -49,6 +57,8 @@ export class AgentBridge extends EventEmitter {
         logger.info(`Creating '${type}' adapter for agent '${agent.name}'`);
 
         switch (type) {
+            case 'gateway':
+                return new GatewayAdapter(agent);
             case 'openclaw':
             case 'nemoclaw':
                 return new OpenClawAdapter(agent);
@@ -107,9 +117,34 @@ export class AgentBridge extends EventEmitter {
 
 function inferAdapterType(agent) {
     const cmd = (agent.command || '').toLowerCase();
-    if (cmd === 'openclaw' || cmd.endsWith('/openclaw')) return 'openclaw';
-    if (cmd === 'nemoclaw' || cmd.endsWith('/nemoclaw')) return 'nemoclaw';
+    if (cmd === 'openclaw' || cmd.endsWith('/openclaw')) {
+        // Prefer the persistent WebSocket gateway when its config exists.
+        // Drops cold-spawn latency from ~1-2s/turn to handshake-only.
+        if (gatewayAvailable()) return 'gateway';
+        return 'openclaw';
+    }
+    if (cmd === 'nemoclaw' || cmd.endsWith('/nemoclaw')) {
+        if (gatewayAvailable()) return 'gateway';
+        return 'nemoclaw';
+    }
     return 'stdio';
+}
+
+let _gatewayAvailableCache;
+function gatewayAvailable() {
+    if (_gatewayAvailableCache !== undefined) return _gatewayAvailableCache;
+    const path = join(homedir(), '.openclaw', 'openclaw.json');
+    if (!existsSync(path)) {
+        _gatewayAvailableCache = false;
+        return false;
+    }
+    try {
+        const cfg = JSON.parse(readFileSync(path, 'utf8'));
+        _gatewayAvailableCache = !!cfg?.gateway?.auth?.token;
+    } catch {
+        _gatewayAvailableCache = false;
+    }
+    return _gatewayAvailableCache;
 }
 
 // Alias for backwards compatibility
