@@ -61,9 +61,10 @@ export class MessageHandler {
         if (!status.running || !status.ready) {
             return this.sendError(ws, 'OPENCLAW_NOT_RUNNING', 'OpenClaw is not running', commandId);
         }
-        if (status.processing) {
-            return this.sendError(ws, 'OPENCLAW_BUSY', 'OpenClaw is processing another command', commandId);
-        }
+        // We used to reject when status.processing was true, but the gateway
+        // adapter handles concurrent runs natively (each one gets its own
+        // runId). Single-shot adapters can still queue or reject internally
+        // if they need to.
 
         session.addToHistory('user', text, commandId);
 

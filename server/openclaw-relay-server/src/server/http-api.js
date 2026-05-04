@@ -25,6 +25,17 @@ export function attachHttpApi(httpsServer, { bridge, authToken, config }) {
     httpsServer.on('request', async (req, res) => {
         const url = new URL(req.url, `https://${req.headers.host}`);
 
+        // Visibility: log every external HTTP hit so you can see when (or
+        // whether) ElevenLabs is actually calling the Custom LLM endpoint.
+        // /health and OPTIONS are pinged often by probes — keep them out of
+        // the log to avoid noise.
+        if (url.pathname !== '/health' && req.method !== 'OPTIONS') {
+            const ua = (req.headers['user-agent'] || '').slice(0, 80);
+            const origin = req.headers['origin'] || req.headers['referer'] || '';
+            const peer = req.socket?.remoteAddress || '?';
+            logger.info(`[HTTP] ${req.method} ${url.pathname}  ua="${ua}"  origin="${origin}"  peer=${peer}`);
+        }
+
         // CORS
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');

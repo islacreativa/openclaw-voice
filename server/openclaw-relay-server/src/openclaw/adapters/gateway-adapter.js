@@ -265,11 +265,7 @@ export class GatewayAdapter extends EventEmitter {
             }
             if (phase === 'end') {
                 this.runs.delete(runId);
-                if (this.currentRunId === runId) {
-                    this.currentRunId = null;
-                    this.isProcessing = false;
-                    this.currentCommandId = null;
-                }
+                if (this.runs.size === 0) this.isProcessing = false;
                 if (payload.data?.aborted) {
                     this.emit('response_error', {
                         commandId: run.commandId,
@@ -287,11 +283,7 @@ export class GatewayAdapter extends EventEmitter {
 
         if (payload.stream === 'error') {
             this.runs.delete(runId);
-            if (this.currentRunId === runId) {
-                this.currentRunId = null;
-                this.isProcessing = false;
-                this.currentCommandId = null;
-            }
+            if (this.runs.size === 0) this.isProcessing = false;
             this.emit('response_error', {
                 commandId: run.commandId,
                 message: payload.data?.message || 'Agent error'
@@ -301,10 +293,14 @@ export class GatewayAdapter extends EventEmitter {
 
     async sendCommand(text, commandId) {
         if (!this.isReady) throw new Error('Gateway adapter not ready');
-        if (this.isProcessing) throw new Error('Gateway is busy');
+        // Each agent run gets its own runId, so the gateway happily handles
+        // multiple turns in parallel. ElevenLabs' Custom LLM in particular
+        // fires 2-3 simultaneous /v1/chat/completions requests when starting
+        // a session — refusing them with "busy" used to drop the response.
+        // We track concurrency via the runs map; isProcessing reflects
+        // whether ANY run is in flight (for status display only).
 
         this.isProcessing = true;
-        this.currentCommandId = commandId;
 
         const params = {
             message: text,
@@ -333,18 +329,26 @@ export class GatewayAdapter extends EventEmitter {
                 startEmitted: true   // we already emitted response_start above
             });
         } catch (err) {
-            this.isProcessing = false;
-            this.currentCommandId = null;
+            if (this.runs.size === 0) this.isProcessing = false;
             logger.error(`[Gateway] sendCommand failed: ${err.message}`);
             logBus.publish({ level: 'error', source: 'openclaw', message: err.message });
             this.emit('response_error', { commandId, message: err.message });
         }
     }
 
-    async cancel() {
-        if (!this.currentRunId) return;
+    async cancel(commandId) {
+        // Find the run by commandId so per-request cancel works under
+        // concurrent load.
+        let target = null;
+        for (const [runId, run] of this.runs) {
+            if (!commandId || run.commandId === commandId) {
+                target = { runId, run };
+                break;
+            }
+        }
+        if (!target) return;
         try {
-            await this.request('sessions.abort', { runId: this.currentRunId });
+            await this.request('sessions.abort', { runId: target.runId });
         } catch (err) {
             logger.warn(`[Gateway] cancel failed: ${err.message}`);
         }
